@@ -9,12 +9,12 @@ public class AccountRole {
     @EmbeddedId
     private AccountRoleId id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @MapsId("accountId")
     @JoinColumn(name = "account_id")
     private Account account;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @MapsId("roleId")
     @JoinColumn(name = "role_id")
     private Role role;
