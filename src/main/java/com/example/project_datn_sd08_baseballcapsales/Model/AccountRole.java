@@ -5,34 +5,19 @@ import jakarta.persistence.*;
 @Entity
 @Table(name = "AccountRoles")
 public class AccountRole {
+
     @EmbeddedId
     private AccountRoleId id;
 
+    @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("accountId")
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "account_id", nullable = false)
-    private com.example.project_datn_sd08_baseballcapsales.Model.Account account;
+    @JoinColumn(name = "account_id")
+    private Account account;
 
+    @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("roleId")
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "role_id", nullable = false)
-    private com.example.project_datn_sd08_baseballcapsales.Model.Role role;
-
-    public AccountRoleId getId() {
-        return id;
-    }
-
-    public void setId(AccountRoleId id) {
-        this.id = id;
-    }
-
-    public com.example.project_datn_sd08_baseballcapsales.Model.Account getAccount() {
-        return account;
-    }
-
-    public void setAccount(com.example.project_datn_sd08_baseballcapsales.Model.Account account) {
-        this.account = account;
-    }
+    @JoinColumn(name = "role_id")
+    private Role role;
 
     public com.example.project_datn_sd08_baseballcapsales.Model.Role getRole() {
         return role;
@@ -41,5 +26,5 @@ public class AccountRole {
     public void setRole(com.example.project_datn_sd08_baseballcapsales.Model.Role role) {
         this.role = role;
     }
-
 }
+
