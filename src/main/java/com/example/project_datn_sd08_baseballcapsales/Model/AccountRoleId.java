@@ -2,6 +2,7 @@ package com.example.project_datn_sd08_baseballcapsales.Model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
+import jakarta.persistence.Id;
 import jakarta.validation.constraints.NotNull;
 import org.hibernate.Hibernate;
 

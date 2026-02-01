@@ -5,7 +5,6 @@ import jakarta.persistence.*;
 @Entity
 @Table(name = "AccountRoles")
 public class AccountRole {
-
     @EmbeddedId
     private AccountRoleId id;
 
