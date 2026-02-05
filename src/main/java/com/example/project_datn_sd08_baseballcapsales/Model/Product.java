@@ -1,11 +1,7 @@
 package com.example.project_datn_sd08_baseballcapsales.Model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
-import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
 import java.math.BigDecimal;
@@ -17,31 +13,26 @@ public class Product {
     @Column(name = "productID", nullable = false)
     private Integer id;
 
-    @Size(max = 100)
+    @Size(max = 200)
     @Nationalized
-    @Column(name = "productName", length = 100)
+    @Column(name = "productName", length = 200)
     private String productName;
 
-    @Size(max = 255)
+    @Size(max = 500)
     @Nationalized
-    @Column(name = "description")
+    @Column(name = "description", length = 500)
     private String description;
-
-    @Column(name = "stockQuantity")
-    private Integer stockQuantity;
 
     @Column(name = "price", precision = 12, scale = 2)
     private BigDecimal price;
 
     @Size(max = 20)
-    @ColumnDefault("'AVAILABLE'")
     @Column(name = "status", length = 20)
     private String status;
 
-    @Size(max = 255)
-    @Nationalized
-    @Column(name = "imageUrl")
-    private String imageUrl;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "brandID")
+    private Brand brandID;
 
     public Integer getId() {
         return id;
@@ -67,14 +58,6 @@ public class Product {
         this.description = description;
     }
 
-    public Integer getStockQuantity() {
-        return stockQuantity;
-    }
-
-    public void setStockQuantity(Integer stockQuantity) {
-        this.stockQuantity = stockQuantity;
-    }
-
     public BigDecimal getPrice() {
         return price;
     }
@@ -91,12 +74,12 @@ public class Product {
         this.status = status;
     }
 
-    public String getImageUrl() {
-        return imageUrl;
+    public Brand getBrandID() {
+        return brandID;
     }
 
-    public void setImageUrl(String imageUrl) {
-        this.imageUrl = imageUrl;
+    public void setBrandID(Brand brandID) {
+        this.brandID = brandID;
     }
 
 }

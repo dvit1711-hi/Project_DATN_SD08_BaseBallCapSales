@@ -22,8 +22,8 @@ public class Review {
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "orderDetailsID", nullable = false)
-    private OrderDetail orderDetailsID;
+    @JoinColumn(name = "accountID", nullable = false)
+    private Account accountID;
 
     @Column(name = "rating")
     private Integer rating;
@@ -53,12 +53,12 @@ public class Review {
         this.productID = productID;
     }
 
-    public OrderDetail getOrderDetailsID() {
-        return orderDetailsID;
+    public Account getAccountID() {
+        return accountID;
     }
 
-    public void setOrderDetailsID(OrderDetail orderDetailsID) {
-        this.orderDetailsID = orderDetailsID;
+    public void setAccountID(Account accountID) {
+        this.accountID = accountID;
     }
 
     public Integer getRating() {

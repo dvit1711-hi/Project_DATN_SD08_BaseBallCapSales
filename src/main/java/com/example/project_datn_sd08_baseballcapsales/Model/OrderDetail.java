@@ -22,11 +22,13 @@ public class OrderDetail {
     @JoinColumn(name = "productID", nullable = false)
     private com.example.project_datn_sd08_baseballcapsales.Model.Product productID;
 
-    @Column(name = "quantity")
+    @NotNull
+    @Column(name = "quantity", nullable = false)
     private Integer quantity;
 
-    @Column(name = "totalPrice", precision = 10, scale = 2)
-    private BigDecimal totalPrice;
+    @NotNull
+    @Column(name = "price", nullable = false, precision = 12, scale = 2)
+    private BigDecimal price;
 
     public Integer getId() {
         return id;
@@ -60,12 +62,12 @@ public class OrderDetail {
         this.quantity = quantity;
     }
 
-    public BigDecimal getTotalPrice() {
-        return totalPrice;
+    public BigDecimal getPrice() {
+        return price;
     }
 
-    public void setTotalPrice(BigDecimal totalPrice) {
-        this.totalPrice = totalPrice;
+    public void setPrice(BigDecimal price) {
+        this.price = price;
     }
 
 }

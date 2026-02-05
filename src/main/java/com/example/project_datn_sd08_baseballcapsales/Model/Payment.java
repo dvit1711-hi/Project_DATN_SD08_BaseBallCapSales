@@ -16,6 +16,11 @@ public class Payment {
     @Column(name = "paymentID", nullable = false)
     private Integer id;
 
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "orderID", nullable = false)
+    private Order orderID;
+
     @Column(name = "amount", precision = 18, scale = 2)
     private BigDecimal amount;
 
@@ -33,17 +38,20 @@ public class Payment {
     @Column(name = "createdAt")
     private Instant createdAt;
 
-    @NotNull
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "orderDetailsID", nullable = false)
-    private OrderDetail orderDetailsID;
-
     public Integer getId() {
         return id;
     }
 
     public void setId(Integer id) {
         this.id = id;
+    }
+
+    public Order getOrderID() {
+        return orderID;
+    }
+
+    public void setOrderID(Order orderID) {
+        this.orderID = orderID;
     }
 
     public BigDecimal getAmount() {
@@ -76,14 +84,6 @@ public class Payment {
 
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
-    }
-
-    public OrderDetail getOrderDetailsID() {
-        return orderDetailsID;
-    }
-
-    public void setOrderDetailsID(OrderDetail orderDetailsID) {
-        this.orderDetailsID = orderDetailsID;
     }
 
 }

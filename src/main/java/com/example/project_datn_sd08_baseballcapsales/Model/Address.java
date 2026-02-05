@@ -8,7 +8,7 @@ import org.hibernate.annotations.Nationalized;
 @Entity
 public class Address {
     @Id
-    @Column(name = "address_id", nullable = false)
+    @Column(name = "addressID", nullable = false)
     private Integer id;
 
     @Size(max = 20)

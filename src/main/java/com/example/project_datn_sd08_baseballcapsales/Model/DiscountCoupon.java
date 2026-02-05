@@ -1,7 +1,9 @@
 package com.example.project_datn_sd08_baseballcapsales.Model;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.Size;
 import org.hibernate.annotations.Nationalized;
 
@@ -28,13 +30,8 @@ public class DiscountCoupon {
 
     @Size(max = 20)
     @Nationalized
-    @Column(name = "Status", length = 20)
+    @Column(name = "status", length = 20)
     private String status;
-
-    @NotNull
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "orderDetailsID", nullable = false)
-    private com.example.project_datn_sd08_baseballcapsales.Model.OrderDetail orderDetailsID;
 
     public Integer getId() {
         return id;
@@ -74,14 +71,6 @@ public class DiscountCoupon {
 
     public void setStatus(String status) {
         this.status = status;
-    }
-
-    public com.example.project_datn_sd08_baseballcapsales.Model.OrderDetail getOrderDetailsID() {
-        return orderDetailsID;
-    }
-
-    public void setOrderDetailsID(com.example.project_datn_sd08_baseballcapsales.Model.OrderDetail orderDetailsID) {
-        this.orderDetailsID = orderDetailsID;
     }
 
 }

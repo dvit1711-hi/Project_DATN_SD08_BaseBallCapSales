@@ -13,30 +13,30 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 @Service
-public class CustomUserDetailsService implements UserDetailsService {
+public class CustomUserDetailsService  {
 
     @Autowired
     private AccountRepository accountRepo;
 
-    @Override
-    public UserDetails loadUserByUsername(String username)
-            throws UsernameNotFoundException {
-
-        Account account = accountRepo.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-
-        List<GrantedAuthority> authorities = account.getRoles()
-                .stream()
-                .map(role -> (GrantedAuthority)
-                        new SimpleGrantedAuthority("ROLE_" + role.getRoleName()))
-                .toList();
-
-        return new org.springframework.security.core.userdetails.User(
-                account.getUsername(),
-                account.getPassword(),
-                authorities
-        );
-    }
+//    @Override
+//    public UserDetails loadUserByUsername(String username)
+//            throws UsernameNotFoundException {
+//
+//        Account account = accountRepo.findByUsername(username)
+//                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+//
+//        List<GrantedAuthority> authorities = account.getRoles()
+//                .stream()
+//                .map(role -> (GrantedAuthority)
+//                        new SimpleGrantedAuthority("ROLE_" + role.getRoleName()))
+//                .toList();
+//
+//        return new org.springframework.security.core.userdetails.User(
+//                account.getUsername(),
+//                account.getPassword(),
+//                authorities
+//        );
+//    }
 
 }
 

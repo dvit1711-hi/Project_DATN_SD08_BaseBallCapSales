@@ -1,40 +1,37 @@
 package com.example.project_datn_sd08_baseballcapsales.Model;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Set;
 
 @Entity
 @Table(name = "Accounts")
-
 public class Account {
-
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "accountID", nullable = false)
     private Integer id;
 
-    @NotNull
     @Size(max = 50)
+    @NotNull
     @Nationalized
     @Column(name = "account_code", nullable = false, length = 50)
     private String accountCode;
 
-    @NotNull
     @Size(max = 50)
+    @NotNull
     @Nationalized
     @Column(name = "username", nullable = false, length = 50)
     private String username;
 
-    @NotNull
     @Size(max = 255)
+    @NotNull
     @Nationalized
     @Column(name = "password", nullable = false)
     private String password;
@@ -54,16 +51,9 @@ public class Account {
     @Column(name = "images")
     private String images;
 
-    // ===== ROLE MAPPING =====
-    @OneToMany(
-            mappedBy = "account",
-            fetch = FetchType.EAGER,
-            cascade = CascadeType.ALL
-    )
-    private Set<AccountRole> accountRoles = new HashSet<>();
-
-
-    // ===== GETTERS / SETTERS =====
+    @ColumnDefault("getdate()")
+    @Column(name = "createDate")
+    private Instant createDate;
 
     public Integer getId() {
         return id;
@@ -121,14 +111,12 @@ public class Account {
         this.images = images;
     }
 
-    // ===== LOGIC ROLE – GIỮ NGUYÊN CHO SECURITY =====
-    public Set<Role> getRoles() {
-        Set<Role> roles = new HashSet<>();
-        if (accountRoles != null) {
-            for (AccountRole ar : accountRoles) {
-                roles.add(ar.getRole());
-            }
-        }
-        return roles;
+    public Instant getCreateDate() {
+        return createDate;
     }
+
+    public void setCreateDate(Instant createDate) {
+        this.createDate = createDate;
+    }
+
 }

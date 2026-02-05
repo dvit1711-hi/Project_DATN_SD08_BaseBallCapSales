@@ -3,9 +3,11 @@ package com.example.project_datn_sd08_baseballcapsales.Model;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
-import java.time.LocalDate;
+import java.math.BigDecimal;
+import java.time.Instant;
 
 @Entity
 @Table(name = "Orders")
@@ -19,13 +21,21 @@ public class Order {
     @JoinColumn(name = "accountID", nullable = false)
     private Account accountID;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "couponID")
+    private DiscountCoupon couponID;
+
+    @ColumnDefault("getdate()")
     @Column(name = "orderDate")
-    private LocalDate orderDate;
+    private Instant orderDate;
 
     @Size(max = 50)
     @Nationalized
     @Column(name = "status", length = 50)
     private String status;
+
+    @Column(name = "totalAmount", precision = 18, scale = 2)
+    private BigDecimal totalAmount;
 
     public Integer getId() {
         return id;
@@ -43,11 +53,19 @@ public class Order {
         this.accountID = accountID;
     }
 
-    public LocalDate getOrderDate() {
+    public DiscountCoupon getCouponID() {
+        return couponID;
+    }
+
+    public void setCouponID(DiscountCoupon couponID) {
+        this.couponID = couponID;
+    }
+
+    public Instant getOrderDate() {
         return orderDate;
     }
 
-    public void setOrderDate(LocalDate orderDate) {
+    public void setOrderDate(Instant orderDate) {
         this.orderDate = orderDate;
     }
 
@@ -57,6 +75,14 @@ public class Order {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public BigDecimal getTotalAmount() {
+        return totalAmount;
+    }
+
+    public void setTotalAmount(BigDecimal totalAmount) {
+        this.totalAmount = totalAmount;
     }
 
 }

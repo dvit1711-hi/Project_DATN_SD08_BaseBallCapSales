@@ -7,7 +7,7 @@ import jakarta.validation.constraints.NotNull;
 @Table(name = "Carts")
 public class Cart {
     @Id
-    @Column(name = "id", nullable = false)
+    @Column(name = "cartID", nullable = false)
     private Integer id;
 
     @NotNull

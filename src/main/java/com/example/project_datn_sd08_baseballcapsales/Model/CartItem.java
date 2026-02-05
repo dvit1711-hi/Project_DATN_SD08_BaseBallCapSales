@@ -8,13 +8,13 @@ import org.hibernate.annotations.ColumnDefault;
 @Table(name = "CartItems")
 public class CartItem {
     @Id
-    @Column(name = "id", nullable = false)
+    @Column(name = "cartItemID", nullable = false)
     private Integer id;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "cartId", nullable = false)
-    private com.example.project_datn_sd08_baseballcapsales.Model.Cart cart;
+    @JoinColumn(name = "cartID", nullable = false)
+    private com.example.project_datn_sd08_baseballcapsales.Model.Cart cartID;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -34,12 +34,12 @@ public class CartItem {
         this.id = id;
     }
 
-    public com.example.project_datn_sd08_baseballcapsales.Model.Cart getCart() {
-        return cart;
+    public com.example.project_datn_sd08_baseballcapsales.Model.Cart getCartID() {
+        return cartID;
     }
 
-    public void setCart(com.example.project_datn_sd08_baseballcapsales.Model.Cart cart) {
-        this.cart = cart;
+    public void setCartID(com.example.project_datn_sd08_baseballcapsales.Model.Cart cartID) {
+        this.cartID = cartID;
     }
 
     public com.example.project_datn_sd08_baseballcapsales.Model.Product getProductID() {
