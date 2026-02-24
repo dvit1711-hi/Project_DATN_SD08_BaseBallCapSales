@@ -8,20 +8,20 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @Controller
 public class LoginController {
 
-    @GetMapping("/redirect")
-    public String redirectByRole(Authentication auth) {
-
-        if (auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
-            return "redirect:/authHome/adminPage";
-        }
-
-        return "redirect:/authHome/userPage";
-    }
-
-    @GetMapping("/auth/login")
-    public String login() {
-        return "authLogin/login";
-    }
+//    @GetMapping("/redirect")
+//    public String redirectByRole(Authentication auth) {
+//
+//        if (auth.getAuthorities().stream()
+//                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
+//            return "redirect:/authHome/adminPage";
+//        }
+//
+//        return "redirect:/authHome/userPage";
+//    }
+//
+//    @GetMapping("/auth/login")
+//    public String login() {
+//        return "authLogin/login";
+//    }
 }
 
