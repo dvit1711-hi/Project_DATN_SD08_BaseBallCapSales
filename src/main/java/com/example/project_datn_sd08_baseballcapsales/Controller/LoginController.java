@@ -6,22 +6,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 @Controller
+@RequestMapping("/login")
 public class LoginController {
-
-//    @GetMapping("/redirect")
-//    public String redirectByRole(Authentication auth) {
-//
-//        if (auth.getAuthorities().stream()
-//                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
-//            return "redirect:/authHome/adminPage";
-//        }
-//
-//        return "redirect:/authHome/userPage";
-//    }
-//
-//    @GetMapping("/auth/login")
-//    public String login() {
-//        return "authLogin/login";
-//    }
+    @GetMapping
+    public String login() {
+        return "login";
+    }
 }
 
