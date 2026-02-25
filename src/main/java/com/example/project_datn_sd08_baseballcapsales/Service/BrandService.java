@@ -1,6 +1,8 @@
 package com.example.project_datn_sd08_baseballcapsales.Service;
 
-import com.example.project_datn_sd08_baseballcapsales.Model.dto.*;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.PostDto.PostBrandDto;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.PutDto.PutBrandDto;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetBranDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Brand;
 import com.example.project_datn_sd08_baseballcapsales.Repository.BrandRepository;
 import org.springframework.beans.factory.annotation.Autowired;

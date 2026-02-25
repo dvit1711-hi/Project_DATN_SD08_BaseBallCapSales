@@ -1,8 +1,8 @@
 package com.example.project_datn_sd08_baseballcapsales.Service;
 
-import com.example.project_datn_sd08_baseballcapsales.Model.dto.GetProductDto;
-import com.example.project_datn_sd08_baseballcapsales.Model.dto.PostProductDto;
-import com.example.project_datn_sd08_baseballcapsales.Model.dto.PutProductDto;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetProductDto;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.PostDto.PostProductDto;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.PutDto.PutProductDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Brand;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Product;
 import com.example.project_datn_sd08_baseballcapsales.Repository.BrandRepository;

@@ -1,10 +1,7 @@
-package com.example.project_datn_sd08_baseballcapsales.Model.dto;
+package com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto;
 
-import com.example.project_datn_sd08_baseballcapsales.Model.entity.Color;
-import com.example.project_datn_sd08_baseballcapsales.Model.entity.Product;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.ProductColor;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.hibernate.annotations.Nationalized;

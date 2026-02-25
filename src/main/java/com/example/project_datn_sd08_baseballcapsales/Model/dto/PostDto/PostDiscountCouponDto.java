@@ -1,6 +1,5 @@
-package com.example.project_datn_sd08_baseballcapsales.Model.dto;
+package com.example.project_datn_sd08_baseballcapsales.Model.dto.PostDto;
 
-import jakarta.persistence.Column;
 import jakarta.validation.constraints.*;
 import lombok.*;
 import org.hibernate.annotations.Nationalized;
@@ -12,8 +11,7 @@ import java.time.LocalDate;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class PutDiscountCouponDto {
-
+public class PostDiscountCouponDto {
     @Size(max = 50)
     @Nationalized
     private String couponCode;
@@ -25,5 +23,4 @@ public class PutDiscountCouponDto {
     @Size(max = 20)
     @Nationalized
     private String status;
-
 }

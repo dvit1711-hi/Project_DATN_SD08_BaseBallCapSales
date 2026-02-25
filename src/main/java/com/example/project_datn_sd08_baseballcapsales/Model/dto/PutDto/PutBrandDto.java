@@ -1,6 +1,5 @@
-package com.example.project_datn_sd08_baseballcapsales.Model.dto;
+package com.example.project_datn_sd08_baseballcapsales.Model.dto.PutDto;
 
-import jakarta.persistence.Column;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
@@ -10,7 +9,7 @@ import org.hibernate.annotations.Nationalized;
 @AllArgsConstructor
 @Setter
 @Getter
-public class PostBrandDto {
+public class PutBrandDto {
 
     @Size(max = 100)
     @NotNull

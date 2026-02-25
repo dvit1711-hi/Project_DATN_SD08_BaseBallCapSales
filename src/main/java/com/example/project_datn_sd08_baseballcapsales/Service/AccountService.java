@@ -1,14 +1,10 @@
 package com.example.project_datn_sd08_baseballcapsales.Service;
 
-import com.example.project_datn_sd08_baseballcapsales.Model.dto.GetAccountDto;
-import com.example.project_datn_sd08_baseballcapsales.Model.dto.GetAddressDto;
-import com.example.project_datn_sd08_baseballcapsales.Model.dto.PostAccountDto;
-import com.example.project_datn_sd08_baseballcapsales.Model.dto.PostAddressDto;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetAccountDto;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.PostDto.PostAccountDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Account;
-import com.example.project_datn_sd08_baseballcapsales.Model.entity.Address;
 import com.example.project_datn_sd08_baseballcapsales.Repository.AccountRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

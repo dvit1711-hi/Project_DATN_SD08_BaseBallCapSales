@@ -1,5 +1,6 @@
-package com.example.project_datn_sd08_baseballcapsales.Model.dto;
+package com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto;
 
+import com.example.project_datn_sd08_baseballcapsales.Model.entity.Product;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -14,7 +15,7 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @Setter
 @Getter
-public class PutProductDto {
+public class GetProductDto {
 
     @Size(max = 200)
     @Nationalized
@@ -34,5 +35,13 @@ public class PutProductDto {
     @Nationalized
     private String name;
 
-    private Integer brandID;
+    public GetProductDto(Product product) {
+        this.productName = product.getProductName();
+        this.description = product.getDescription();
+        this.price = product.getPrice();
+        this.status = product.getStatus();
+        if(product.getBrandID() != null){
+            this.name = product.getBrandID().getName();
+        }
+    }
 }

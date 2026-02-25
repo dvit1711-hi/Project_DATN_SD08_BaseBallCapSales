@@ -1,11 +1,8 @@
 package com.example.project_datn_sd08_baseballcapsales.Controller;
 
-import com.example.project_datn_sd08_baseballcapsales.Model.dto.*;
-import com.example.project_datn_sd08_baseballcapsales.Model.entity.ProductColor;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetProductColorDto;
 import com.example.project_datn_sd08_baseballcapsales.Service.ProductColorService;
-import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;

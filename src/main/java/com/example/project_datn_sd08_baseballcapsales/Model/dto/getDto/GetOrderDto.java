@@ -1,7 +1,5 @@
-package com.example.project_datn_sd08_baseballcapsales.Model.dto;
+package com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto;
 
-import com.example.project_datn_sd08_baseballcapsales.Model.entity.Account;
-import com.example.project_datn_sd08_baseballcapsales.Model.entity.DiscountCoupon;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Order;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;

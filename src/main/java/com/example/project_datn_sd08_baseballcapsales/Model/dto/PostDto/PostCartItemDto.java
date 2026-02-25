@@ -1,4 +1,4 @@
-package com.example.project_datn_sd08_baseballcapsales.Model.dto;
+package com.example.project_datn_sd08_baseballcapsales.Model.dto.PostDto;
 
 import lombok.*;
 
@@ -6,8 +6,9 @@ import lombok.*;
 @AllArgsConstructor
 @Setter
 @Getter
-public class PutCartItemDto {
+public class PostCartItemDto {
 
+    private Integer cartItemID;
     private Integer cartID;
     private Integer productID;
     private Integer quantity;

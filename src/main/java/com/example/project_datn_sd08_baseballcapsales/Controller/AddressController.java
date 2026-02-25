@@ -1,6 +1,8 @@
 package com.example.project_datn_sd08_baseballcapsales.Controller;
 
-import com.example.project_datn_sd08_baseballcapsales.Model.dto.*;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.PostDto.PostAddressDto;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.PutDto.PutAddressDto;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetAddressDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Address;
 import com.example.project_datn_sd08_baseballcapsales.Service.AddressService;
 import jakarta.validation.Valid;

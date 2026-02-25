@@ -1,4 +1,4 @@
-package com.example.project_datn_sd08_baseballcapsales.Model.dto;
+package com.example.project_datn_sd08_baseballcapsales.Model.dto.PutDto;
 
 import jakarta.validation.constraints.*;
 import lombok.*;
@@ -11,7 +11,8 @@ import java.time.LocalDate;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class PostDiscountCouponDto {
+public class PutDiscountCouponDto {
+
     @Size(max = 50)
     @Nationalized
     private String couponCode;
@@ -23,4 +24,5 @@ public class PostDiscountCouponDto {
     @Size(max = 20)
     @Nationalized
     private String status;
+
 }

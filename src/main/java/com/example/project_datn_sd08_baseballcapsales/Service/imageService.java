@@ -1,8 +1,8 @@
 package com.example.project_datn_sd08_baseballcapsales.Service;
 
-import com.example.project_datn_sd08_baseballcapsales.Model.dto.GetImageDto;
-import com.example.project_datn_sd08_baseballcapsales.Model.dto.PostImageDto;
-import com.example.project_datn_sd08_baseballcapsales.Model.dto.PutImageDto;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetImageDto;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.PostDto.PostImageDto;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.PutDto.PutImageDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Image;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.ProductColor;
 import com.example.project_datn_sd08_baseballcapsales.Repository.ImageRepository;

@@ -1,6 +1,8 @@
 package com.example.project_datn_sd08_baseballcapsales.Service;
 
-import com.example.project_datn_sd08_baseballcapsales.Model.dto.*;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.PostDto.PostColorDto;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.PutDto.PutColorDto;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetColorDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Color;
 import com.example.project_datn_sd08_baseballcapsales.Repository.ColorRepository;
 import org.springframework.beans.factory.annotation.Autowired;

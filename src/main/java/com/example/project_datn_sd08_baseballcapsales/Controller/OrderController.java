@@ -1,6 +1,6 @@
 package com.example.project_datn_sd08_baseballcapsales.Controller;
 
-import com.example.project_datn_sd08_baseballcapsales.Model.dto.GetOrderDto;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetOrderDto;
 import com.example.project_datn_sd08_baseballcapsales.Service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;

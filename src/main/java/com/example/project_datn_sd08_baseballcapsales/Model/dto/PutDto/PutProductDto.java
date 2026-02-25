@@ -1,4 +1,4 @@
-package com.example.project_datn_sd08_baseballcapsales.Model.dto;
+package com.example.project_datn_sd08_baseballcapsales.Model.dto.PutDto;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -14,7 +14,7 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @Setter
 @Getter
-public class PostProductDto {
+public class PutProductDto {
 
     @Size(max = 200)
     @Nationalized
@@ -35,6 +35,4 @@ public class PostProductDto {
     private String name;
 
     private Integer brandID;
-
-
 }

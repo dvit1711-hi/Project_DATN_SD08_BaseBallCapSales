@@ -1,6 +1,8 @@
 package com.example.project_datn_sd08_baseballcapsales.Controller;
 
-import com.example.project_datn_sd08_baseballcapsales.Model.dto.*;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.PostDto.PostDiscountCouponDto;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.PutDto.PutDiscountCouponDto;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetDiscountCouponDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.DiscountCoupon;
 import com.example.project_datn_sd08_baseballcapsales.Service.DiscountCouponService;
 import jakarta.validation.Valid;

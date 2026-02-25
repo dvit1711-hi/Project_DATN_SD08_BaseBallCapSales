@@ -1,9 +1,6 @@
-package com.example.project_datn_sd08_baseballcapsales.Model.dto;
+package com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto;
 
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Account;
-import com.example.project_datn_sd08_baseballcapsales.Model.entity.Address;
-import jakarta.persistence.Column;
-import jakarta.persistence.Id;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
