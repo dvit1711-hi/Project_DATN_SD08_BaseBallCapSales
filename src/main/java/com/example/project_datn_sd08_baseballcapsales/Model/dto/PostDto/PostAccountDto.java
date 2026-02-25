@@ -13,11 +13,6 @@ import org.hibernate.annotations.Nationalized;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PostAccountDto {
-    @Size(max = 50)
-    @NotNull
-    @Nationalized
-    private String accountCode;
-
     @NotNull
     @Nationalized
     private String username;
@@ -26,4 +21,16 @@ public class PostAccountDto {
     @NotNull
     @Nationalized
     private String password;
+
+    @Size(max = 100)
+    @Nationalized
+    private String email;
+
+    @Size(max = 20)
+    @Nationalized
+    private String phoneNumber;
+
+    @Size(max = 255)
+    @Nationalized
+    private String images;
 }

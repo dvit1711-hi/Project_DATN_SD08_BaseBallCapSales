@@ -1,6 +1,5 @@
-package com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto;
+package com.example.project_datn_sd08_baseballcapsales.Model.dto.PutDto;
 
-import com.example.project_datn_sd08_baseballcapsales.Model.entity.Account;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -10,19 +9,16 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
-
-import java.time.Instant;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class GetAccountDto {
+public class PutAccountDto {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Long id;
 
     @Size(max = 50)
     @NotNull
@@ -45,16 +41,4 @@ public class GetAccountDto {
     @Size(max = 255)
     @Nationalized
     private String images;
-
-    @ColumnDefault("getdate()")
-    private Instant createDate;
-
-    public GetAccountDto(Account account) {
-        this.username = account.getUsername();
-        this.password = account.getPassword();
-        this.email = account.getEmail();
-        this.phoneNumber = account.getPhoneNumber();
-        this.images = account.getImages();
-        this.createDate = account.getCreateDate();
-    }
 }
