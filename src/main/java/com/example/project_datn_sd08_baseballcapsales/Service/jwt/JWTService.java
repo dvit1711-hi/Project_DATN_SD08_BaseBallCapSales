@@ -1,4 +1,4 @@
-package com.example.project_datn_sd08_baseballcapsales.Service;
+package com.example.project_datn_sd08_baseballcapsales.Service.jwt;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;

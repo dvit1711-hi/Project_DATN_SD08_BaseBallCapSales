@@ -1,15 +1,14 @@
 package com.example.project_datn_sd08_baseballcapsales.Service.auth;
 
-import com.example.project_datn_sd08_baseballcapsales.Model.dto.LoginRequest;
-import com.example.project_datn_sd08_baseballcapsales.Model.dto.LoginResponse;
+import com.example.project_datn_sd08_baseballcapsales.payload.request.LoginRequest;
+import com.example.project_datn_sd08_baseballcapsales.payload.reponse.LoginResponse;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Account;
 import com.example.project_datn_sd08_baseballcapsales.Repository.AccountRepository;
-import com.example.project_datn_sd08_baseballcapsales.Service.JWTService;
+import com.example.project_datn_sd08_baseballcapsales.Service.jwt.JWTService;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;

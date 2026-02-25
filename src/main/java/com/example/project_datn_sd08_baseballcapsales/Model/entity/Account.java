@@ -21,6 +21,10 @@ import java.util.List;
 @Setter
 public class Account {
     @Id
+<<<<<<< HEAD
+=======
+    @Column(name = "accountID", nullable = false)
+>>>>>>> 5bd85983ef87054ab079c769d21d34f862799154
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 

@@ -1,7 +1,7 @@
 package com.example.project_datn_sd08_baseballcapsales.Controller;
 
-import com.example.project_datn_sd08_baseballcapsales.Model.dto.LoginRequest;
-import com.example.project_datn_sd08_baseballcapsales.Model.dto.LoginResponse;
+import com.example.project_datn_sd08_baseballcapsales.payload.request.LoginRequest;
+import com.example.project_datn_sd08_baseballcapsales.payload.reponse.LoginResponse;
 import com.example.project_datn_sd08_baseballcapsales.Service.auth.AuthService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
