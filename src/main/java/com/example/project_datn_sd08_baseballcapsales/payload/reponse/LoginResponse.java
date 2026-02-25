@@ -1,4 +1,4 @@
-package com.example.project_datn_sd08_baseballcapsales.Model.dto;
+package com.example.project_datn_sd08_baseballcapsales.payload.reponse;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -9,7 +9,6 @@ import lombok.Setter;
 @AllArgsConstructor
 @Setter
 @Getter
-public class LoginRequest {
-    private String username;
-    private String password;
+public class LoginResponse {
+    private String accessToken;
 }

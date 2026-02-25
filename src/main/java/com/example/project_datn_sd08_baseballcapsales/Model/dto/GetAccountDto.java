@@ -1,6 +1,9 @@
-package com.example.project_datn_sd08_baseballcapsales.Model.entity;
+package com.example.project_datn_sd08_baseballcapsales.Model.dto;
 
-import jakarta.persistence.*;
+import com.example.project_datn_sd08_baseballcapsales.Model.entity.Account;
+import com.example.project_datn_sd08_baseballcapsales.Model.entity.Address;
+import jakarta.persistence.Column;
+import jakarta.persistence.Id;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -11,58 +14,49 @@ import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
 import java.time.Instant;
-import java.util.List;
 
-@Entity
-@Table(name = "Accounts")
-@NoArgsConstructor
-@AllArgsConstructor
 @Getter
 @Setter
-public class Account {
-    @Id
-    @Column(name = "accountID", nullable = false)
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
-
+@NoArgsConstructor
+@AllArgsConstructor
+public class GetAccountDto {
     @Size(max = 50)
     @NotNull
     @Nationalized
-    @Column(name = "account_code", nullable = false, length = 50)
     private String accountCode;
 
     @Size(max = 50)
     @NotNull
     @Nationalized
-    @Column(name = "username", nullable = false, length = 50)
     private String username;
 
     @Size(max = 255)
     @NotNull
     @Nationalized
-    @Column(name = "password", nullable = false)
     private String password;
 
     @Size(max = 100)
     @Nationalized
-    @Column(name = "email", length = 100)
     private String email;
 
     @Size(max = 20)
     @Nationalized
-    @Column(name = "phoneNumber", length = 20)
     private String phoneNumber;
 
     @Size(max = 255)
     @Nationalized
-    @Column(name = "images")
     private String images;
 
     @ColumnDefault("getdate()")
-    @Column(name = "createDate")
     private Instant createDate;
 
-//    @OneToMany(mappedBy = "account")
-//    private List<AccountRole> accountRoles;
-
+    public GetAccountDto(Account account) {
+        this.accountCode = account.getAccountCode();
+        this.username = account.getUsername();
+        this.password = account.getPassword();
+        this.email = account.getEmail();
+        this.phoneNumber = account.getPhoneNumber();
+        this.images = account.getImages();
+        this.createDate = account.getCreateDate();
+    }
 }
