@@ -29,7 +29,7 @@ public class AccountService{
     public Account postAccount(PostAccountDto dto) {
 
         Account account = new Account();
-        account.setAccountCode(dto.getAccountCode());
+        account.setEmail(dto.getAccountCode());
         account.setUsername(dto.getUsername());
         account.setPassword(dto.getPassword());
 

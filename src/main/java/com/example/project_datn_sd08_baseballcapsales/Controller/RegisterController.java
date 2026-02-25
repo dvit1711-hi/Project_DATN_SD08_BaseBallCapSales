@@ -1,7 +1,6 @@
 package com.example.project_datn_sd08_baseballcapsales.Controller;
 
-import com.example.project_datn_sd08_baseballcapsales.Model.dto.RegisterRequest;
-import com.example.project_datn_sd08_baseballcapsales.Model.entity.AccountRole;
+import com.example.project_datn_sd08_baseballcapsales.payload.request.RegisterRequest;
 import com.example.project_datn_sd08_baseballcapsales.Service.AccountRolesService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -20,13 +19,10 @@ public class RegisterController {
 
     @PostMapping("/register")
     public ResponseEntity<String> registerAccount(@RequestBody RegisterRequest request) {
-
         try {
             accountRolesService.registerUser(request);
-
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body("User created successfully: " + request.getUsername());
-
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error: " + e.getMessage());

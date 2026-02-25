@@ -1,6 +1,6 @@
 package com.example.project_datn_sd08_baseballcapsales.Service;
 
-import com.example.project_datn_sd08_baseballcapsales.Model.dto.RegisterRequest;
+import com.example.project_datn_sd08_baseballcapsales.payload.request.RegisterRequest;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Account;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.AccountRole;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Role;
