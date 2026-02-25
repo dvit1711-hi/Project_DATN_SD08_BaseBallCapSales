@@ -51,7 +51,7 @@ public class GetOrderDetailDto {
         }
 
         if (od.getOrderID() != null) {
-            this.accountCode = od.getOrderID().getAccountID().getAccountCode();
+            this.accountCode = od.getOrderID().getAccountID().getEmail();
         }
     }
 }

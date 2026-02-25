@@ -58,7 +58,7 @@ public class GetAddressDto {
         this.region = address.getRegion();
         this.postalCode = address.getPostalCode();
         if(address.getAccountID() != null){
-            this.accountCode = address.getAccountID().getAccountCode();
+            this.accountCode = address.getAccountID().getEmail();
         }
     }
 }

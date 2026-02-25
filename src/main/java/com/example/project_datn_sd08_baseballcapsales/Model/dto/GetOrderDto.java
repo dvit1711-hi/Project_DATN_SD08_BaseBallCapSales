@@ -51,8 +51,8 @@ public class GetOrderDto {
         this.orderDate = order.getOrderDate();
         this.status = order.getStatus();
         this.totalAmount = order.getTotalAmount();
-        if (order.getAccountID() != null && order.getAccountID().getAccountCode() != null) {
-            this.accountCode = order.getAccountID().getAccountCode();
+        if (order.getAccountID() != null && order.getAccountID().getEmail() != null) {
+            this.accountCode = order.getAccountID().getEmail();
         }
         if (order.getCouponID() != null && order.getCouponID().getCouponCode() != null) {
             this.couponCode = order.getCouponID().getCouponCode();

@@ -21,14 +21,8 @@ import java.util.List;
 @Setter
 public class Account {
     @Id
-    @Column(name = "accountID", nullable = false)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
-
-    @Size(max = 50)
-    @NotNull
-    @Nationalized
-    @Column(name = "account_code", nullable = false, length = 50)
-    private String accountCode;
 
     @Size(max = 50)
     @NotNull
