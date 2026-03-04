@@ -33,11 +33,11 @@ public class PaymentService {
     @Transactional
     public Order checkoutCOD(Integer accountId) {
         Account account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new RuntimeException("Account not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"));
         List<CartItem> cartItems =
                 cartItemRepository.findByCartID(accountId);
         if (cartItems.isEmpty()) {
-            throw new RuntimeException("Cart is empty");
+            throw new RuntimeException("Giỏ hàng trống");
         }
         BigDecimal total = BigDecimal.ZERO;
         Order order = new Order();
@@ -73,10 +73,10 @@ public class PaymentService {
     @Transactional
     public String markOnlineSuccess(Integer orderId) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng"));
 
         Payment payment = paymentRepository.findByOrderID(order)
-                .orElseThrow(() -> new RuntimeException("Payment not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy thanh toán"));
         order.setStatus("PAID");
         payment.setStatus("PAID");
         orderRepository.save(order);
