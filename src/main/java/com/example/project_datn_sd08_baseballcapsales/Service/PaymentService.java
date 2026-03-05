@@ -24,6 +24,9 @@ public class PaymentService {
     private PaymentRepository paymentRepository;
 
     @Autowired
+    private CartRepository cartRepository;
+
+    @Autowired
     private CartItemRepository cartItemRepository;
 
     @Autowired
@@ -34,8 +37,10 @@ public class PaymentService {
     public Order checkoutCOD(Integer accountId) {
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"));
+        Cart cart = cartRepository.findByAccountID_Id(accountId);
+
         List<CartItem> cartItems =
-                cartItemRepository.findByCartID(accountId);
+                cartItemRepository.findByCartID_Id(cart.getId());
         if (cartItems.isEmpty()) {
             throw new RuntimeException("Giỏ hàng trống");
         }
