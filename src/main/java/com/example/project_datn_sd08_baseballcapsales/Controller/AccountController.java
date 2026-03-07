@@ -31,16 +31,16 @@ public class AccountController {
     }
 
     // Thông tin người dùng
-    @GetMapping
-    public List<GetAccountDto> getAllAccount() {
-        return accountService.getAlladdressDtos();
-    }
-
-    @PostMapping
-    public ResponseEntity<Account> createAccount(@Valid @RequestBody PostAccountDto dto) {
-        Account acc = accountService.createAccount(dto);
-        return ResponseEntity.ok(acc);
-    }
+//    @GetMapping
+//    public List<GetAccountDto> getAllAccount() {
+//        return accountService.getAlladdressDtos();
+//    }
+//
+//    @PostMapping
+//    public ResponseEntity<Account> createAccount(@Valid @RequestBody PostAccountDto dto) {
+//        Account acc = accountService.createAccount(dto);
+//        return ResponseEntity.ok(acc);
+//    }
 
     @PutMapping("/{id}")
     public ResponseEntity<?> updateAccount(@PathVariable Integer id, @Valid @RequestBody PutAccountDto dto) {
