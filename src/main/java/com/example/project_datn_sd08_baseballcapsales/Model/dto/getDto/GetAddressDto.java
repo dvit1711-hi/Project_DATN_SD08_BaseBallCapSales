@@ -14,6 +14,7 @@ import org.hibernate.annotations.Nationalized;
 @Setter
 @Getter
 public class GetAddressDto {
+    private Integer id;
     @Size(max = 20)
     @Nationalized
     private String unitNumber;
@@ -48,6 +49,7 @@ public class GetAddressDto {
     private String accountCode;
 
     public GetAddressDto(Address address) {
+        this.id = address.getId();
         this.unitNumber = address.getUnitNumber();
         this.streetNumber = address.getStreetNumber();
         this.addressLine1 = address.getAddressLine1();
@@ -59,4 +61,5 @@ public class GetAddressDto {
             this.accountCode = address.getAccountID().getEmail();
         }
     }
+
 }

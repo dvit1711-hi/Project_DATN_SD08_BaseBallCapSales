@@ -9,13 +9,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
 @Service
 public class AccountService{
     @Autowired
     private AccountRepository accountRepository;
+
+    public GetAccountDto getAccountById(Integer id) {
+
+        Account account = accountRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Account id " + id + " not found"));
+
+        return new GetAccountDto(account);
+    }
 
     public List<GetAccountDto> getAlladdressDtos() {
         return accountRepository.findAll()
@@ -33,45 +38,18 @@ public class AccountService{
         return accountRepository.save(account);
     }
 
-    // Lấy thông tin người dùng
-    public List<GetAccountDto> getAllAccountDto() {
-        return accountRepository.findAll().stream()
-                .map(account -> new GetAccountDto(
-                        account.getId(),
-                        account.getUsername(),
-                        account.getPassword(),
-                        account.getEmail(),
-                        account.getPhoneNumber(),
-                        account.getImages(),
-                        account.getCreateDate()
-                ))
-                .collect(Collectors.toList());
-    }
+    public Account updateAccount(Integer id, PutAccountDto dto) {
 
-    // Thêm thông tin người dùng mới
-    public Account createAccount(PostAccountDto dto) {
-        Account acc = new Account();
-        acc.setUsername(dto.getUsername());
-        acc.setEmail(dto.getEmail());
-        acc.setPassword(dto.getPassword());
-        acc.setPhoneNumber(dto.getPhoneNumber());
-        acc.setImages(dto.getImages());
-        return accountRepository.save(acc);
-    }
+        Account account = accountRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Account not found"));
 
-    // Sửa thông tin người dùng
-    public Account updateAccount(Integer id ,PutAccountDto dto) {
-        Optional<Account> account = accountRepository.findById(id);
-        if(!account.isPresent()) {
-            throw new IllegalArgumentException("Account not found");
-        }
-        Account acc = account.get();
-        acc.setUsername(dto.getUsername());
-        acc.setEmail(dto.getEmail());
-        acc.setPassword(dto.getPassword());
-        acc.setPhoneNumber(dto.getPhoneNumber());
-        acc.setImages(dto.getImages());
-        return accountRepository.save(acc);
+        account.setUsername(dto.getUsername());
+        account.setEmail(dto.getEmail());
+        account.setPassword(dto.getPassword());
+        account.setPhoneNumber(dto.getPhoneNumber());
+        account.setImages(dto.getImages());
+
+        return accountRepository.save(account);
     }
 
     public boolean deleteAccount(Integer id) {

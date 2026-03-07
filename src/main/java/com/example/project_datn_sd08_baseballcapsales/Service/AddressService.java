@@ -20,6 +20,14 @@ public class AddressService {
     @Autowired
     private AccountRepository accountRepository;
 
+    public GetAddressDto getAddressById(Integer id) {
+
+        Address address = addressRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Address id " + id + " not found"));
+
+        return new GetAddressDto(address);
+    }
+
     public List<GetAddressDto> getAlladdressDtos() {
         return addressRepository.findAll()
                 .stream()
