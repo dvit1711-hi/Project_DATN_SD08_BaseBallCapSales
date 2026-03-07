@@ -33,7 +33,6 @@ public class CartService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"));
 
         Cart cart = new Cart();
-        cart.setId(dto.getCartID());
         cart.setAccountID(acc);
 
         return cartRepository.save(cart);

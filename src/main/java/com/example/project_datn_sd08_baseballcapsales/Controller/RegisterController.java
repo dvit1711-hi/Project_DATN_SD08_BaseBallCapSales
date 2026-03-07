@@ -17,18 +17,6 @@ public class RegisterController {
     @Autowired
     private AccountRolesService accountRolesService;
 
-//    @PostMapping("/register")
-//    public ResponseEntity<String> registerAccount(@RequestBody RegisterRequest request) {
-//        try {
-//            accountRolesService.registerUser(request);
-//            return ResponseEntity.status(HttpStatus.CREATED)
-//                    .body("User created successfully: " + request.getUsername());
-//        } catch (Exception e) {
-//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-//                    .body("Error: " + e.getMessage());
-//        }
-//    }
-
     @PostMapping("/register")
     public ResponseEntity<String> registerAccount(@RequestBody RegisterRequest request) {
         try {
