@@ -10,6 +10,7 @@ import lombok.Setter;
 import org.hibernate.annotations.Nationalized;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Entity
 @Table(name = "Products")
@@ -45,5 +46,6 @@ public class Product {
     @JsonIgnoreProperties({"hibernateLazyInitializer","handler"})
     private Brand brandID;
 
-
+    @OneToMany(mappedBy = "productID")
+    private List<ProductColor> productColors;
 }

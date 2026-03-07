@@ -30,10 +30,9 @@ public class CartService {
 
     public Cart create(PostCartDto dto) {
         Account acc = accountRepository.findById(dto.getAccountID())
-                .orElseThrow(() -> new RuntimeException("Account not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"));
 
         Cart cart = new Cart();
-        cart.setId(dto.getCartID());
         cart.setAccountID(acc);
 
         return cartRepository.save(cart);
@@ -41,10 +40,10 @@ public class CartService {
 
     public Cart update(Integer id, PutCartDto dto) {
         Cart cart = cartRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Cart not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy giỏ hàng"));
 
         Account acc = accountRepository.findById(dto.getAccountID())
-                .orElseThrow(() -> new RuntimeException("Account not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"));
 
         cart.setAccountID(acc);
 
@@ -53,7 +52,7 @@ public class CartService {
 
     public boolean delete(Integer id) {
         if (!cartRepository.existsById(id)) {
-            throw new RuntimeException("Cart not found");
+            throw new RuntimeException("Không tìm thấy giỏ hàng");
         }
         cartRepository.deleteById(id);
         return true;

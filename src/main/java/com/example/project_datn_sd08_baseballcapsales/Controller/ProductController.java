@@ -1,9 +1,13 @@
 package com.example.project_datn_sd08_baseballcapsales.Controller;
 
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.ProductDto.ProductCardDto;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.ProductDto.ProductColorDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetProductDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.PostDto.PostProductDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Product;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.PutDto.PutProductDto;
+import com.example.project_datn_sd08_baseballcapsales.Model.entity.ProductColor;
+import com.example.project_datn_sd08_baseballcapsales.Service.ProductColorService;
 import com.example.project_datn_sd08_baseballcapsales.Service.ProductService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,10 +21,12 @@ import java.util.List;
 public class ProductController {
     @Autowired
     private ProductService productService;
+    @Autowired
+    private ProductColorService productColorService;
 
     @GetMapping
-    public List<GetProductDto> getProducts() {
-        return productService.getAllProducts();
+    public List<ProductCardDto> getProductCards() {
+        return productColorService.getProductCards();
     }
 
     @PostMapping

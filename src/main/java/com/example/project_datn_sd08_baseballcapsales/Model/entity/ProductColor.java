@@ -7,6 +7,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.List;
+
 @Entity
 @Table(name = "ProductColors")
 @NoArgsConstructor
@@ -32,4 +34,6 @@ public class ProductColor {
     @Column(name = "stockQuantity")
     private Integer stockQuantity;
 
+    @OneToMany(mappedBy = "productColorID")
+    private List<Image> images;
 }
