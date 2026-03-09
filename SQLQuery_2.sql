@@ -86,9 +86,9 @@ VALUES (
 ),
 (N'Nón NY', N'Mũ thể thao NY thoáng khí', 890000, N'ACTIVE', 1)
 ;
--- SELECT*
--- FROM Products p
--- JOIN Images i ON 
+SELECT*
+FROM Products 
+
 
 
 CREATE TABLE Colors (
@@ -98,9 +98,14 @@ CREATE TABLE Colors (
 );
 INSERT INTO Colors (colorName, colorCode)
 VALUES
-(N'Đen', '#000000'),
-(N'Đỏ', '#FF0000'),
-(N'Be', '#F5F5DC');
+(N'Xám', '#BBBBBB'),
+-- (N'Đen', '#000000'),
+-- (N'Đỏ', '#FF0000'),
+-- (N'Be', '#F5F5DC'),
+-- (N'Hồng', '#FFB6C1'),
+(N'Xanh', '#99FF33')
+;
+SELECT*FROM Colors
 
 CREATE TABLE ProductColors (
     productColorID INT IDENTITY(1,1) PRIMARY KEY,
@@ -112,10 +117,19 @@ CREATE TABLE ProductColors (
 );
 INSERT INTO ProductColors (productID, colorID, stockQuantity)
 VALUES
+(2,6,100),
+(2,5,100),
+(2,4,100),
 (1, 1, 100), -- Đen
 (1, 2, 60),  -- Đỏ
 (1, 3, 40),  -- Be
 (2,1,100);
+
+select*from ProductColors
+select*from Images
+-- update Images
+-- set imageUrl = '/images/yankeesDEN5.jpg'
+-- WHERE imageID = 5
 
 CREATE TABLE Images (
     imageID INT IDENTITY(1,1) PRIMARY KEY,
@@ -126,11 +140,34 @@ CREATE TABLE Images (
 );
 INSERT INTO Images (productColorID, imageUrl, isMain)
 VALUES
+(5, '/images/nyHONG1.jpg', 1),
+(5, '/images/nyHONG2.jpg', 0),
+(5 , '/images/nyHONG3.jpg', 0),
+(5, '/images/nyHONG4.jpg', 0)
+
+
+INSERT INTO Images (productColorID, imageUrl, isMain)
+VALUES
+(6, '/images/nyXANH1.jpg', 1),
+(6, '/images/nyXANH2.jpg', 0),
+(6, '/images/nyXANH3.jpg', 0),
+(6, '/images/nyXANH4.jpg', 0)
+
+INSERT INTO Images (productColorID, imageUrl, isMain)
+VALUES
+(7, '/images/nyXAM1.jpg', 1),
+(7, '/images/nyXAM2.jpg', 0),
+(7, '/images/nyXAM3.jpg', 0),
+(7, '/images/nyXAM4.jpg', 0)
+
+
+INSERT INTO Images (productColorID, imageUrl, isMain)
+VALUES
 (1, '/images/yankeesDEN1.jpg', 1),
-(1, '/images/Image\yankeesDEN2.jpg', 0),
+(1, '/images/yankeesDEN2.jpg', 0),
 (1, '/images/yankeesDEN3.jpg', 0),
 (1, '/images/yankeesDEN4.jpg', 0),
-(1, 'D:/images/yankeesDEN5.jpg', 0)
+(1, '/images/yankeesDEN5.jpg', 0)
 INSERT INTO Images (productColorID, imageUrl, isMain)
 VALUES
 (2, '/images/yankeesDO1.jpg', 1),
@@ -153,7 +190,12 @@ VALUES
 (4, '/images/nyden4.jpg', 0),
 (4, '/images/nyden5.jpg', 0);
 
+-- Select 
+-- FROM ProductColors prdc 
+-- JOIN Products prd ON prdc.productID = prd.id
+-- JOIN 
 
+SELECT*FROM Carts
 CREATE TABLE Carts (
     cartID INT IDENTITY(1,1) PRIMARY KEY,
     accountID INT NOT NULL,
@@ -234,11 +276,13 @@ VALUES
 GO
 
 -- ACCOUNTS
-INSERT INTO Accounts (account_code, username, password, email, phoneNumber, images)
+INSERT INTO Accounts ( username, password, email, phoneNumber, images)
 VALUES
-(N'ACC001', N'admin', N'$2a$12$f2lpXSJxQCCvHRAy0VonJOqIdwh/lTktQGuBvCIrPYHieb0ky5kPm', N'admin@gmail.com', N'0900000001', N'admin.jpg'),
-(N'ACC003', N'duong', N'$2a$12$f2lpXSJxQCCvHRAy0VonJOqIdwh/lTktQGuBvCIrPYHieb0ky5kPm', N'duong@gmail.com', N'0900000003', N'duong.jpg');
+-- (N'ACC001', N'admin', N'$2a$12$f2lpXSJxQCCvHRAy0VonJOqIdwh/lTktQGuBvCIrPYHieb0ky5kPm', N'admin@gmail.com', N'0900000001', N'admin.jpg'),
+-- ( N'viet', N'$2a$12$j1h2s3SrTj2aMSHuoEO36OLbAbcIdRO7nlvhhRmO0cyLli6OSzu/y', N'vietg@gmail.com', N'0900000003', N'duong.jpg'),
+( N'tien', N'$2a$12$j1h2s3SrTj2aMSHuoEO36OLbAbcIdRO7nlvhhRmO0cyLli6OSzu/y', N'tien@gmail.com', N'0900000003', N'tien.jpg');
 GO
+SELECT*From Accounts
 
 -- ACCOUNT ROLES
 INSERT INTO AccountRoles (accountID, roleID)
