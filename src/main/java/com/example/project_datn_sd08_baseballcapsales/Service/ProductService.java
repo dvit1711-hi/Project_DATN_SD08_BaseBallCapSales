@@ -1,9 +1,11 @@
 package com.example.project_datn_sd08_baseballcapsales.Service;
 
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.ProductDto.ProductCardDto;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetAccountDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetProductDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.PostDto.PostProductDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.PutDto.PutProductDto;
+import com.example.project_datn_sd08_baseballcapsales.Model.entity.Account;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Brand;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Product;
 import com.example.project_datn_sd08_baseballcapsales.Repository.BrandRepository;
@@ -26,6 +28,14 @@ public class ProductService {
                 .stream()
                 .map(GetProductDto::new)
                 .toList();
+    }
+
+    public GetProductDto getproductById(Integer id) {
+
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Product id " + id + " not found"));
+
+        return new GetProductDto(product);
     }
 
     public Product PostProductDto (PostProductDto postProductDto) {
