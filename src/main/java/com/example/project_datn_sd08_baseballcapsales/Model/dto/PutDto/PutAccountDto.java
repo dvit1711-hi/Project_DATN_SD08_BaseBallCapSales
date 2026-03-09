@@ -17,8 +17,7 @@ import org.hibernate.annotations.Nationalized;
 @AllArgsConstructor
 public class PutAccountDto {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Integer id;
 
     @Size(max = 50)
     @NotNull

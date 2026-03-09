@@ -23,6 +23,11 @@ public class AddressController {
         return addressService.getAlladdressDtos();
     }
 
+    @GetMapping("/{id}")
+    public GetAddressDto getAddressById(@PathVariable Integer id){
+        return addressService.getAddressById(id);
+    }
+
     @PostMapping
     public ResponseEntity<Address> postProduct(@Valid @RequestBody PostAddressDto dto){
         Address address =addressService.postAddress(dto);

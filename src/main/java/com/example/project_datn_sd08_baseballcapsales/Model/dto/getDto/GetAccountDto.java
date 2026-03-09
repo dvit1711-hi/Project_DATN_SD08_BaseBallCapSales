@@ -50,6 +50,7 @@ public class GetAccountDto {
     private Instant createDate;
 
     public GetAccountDto(Account account) {
+        this.id = account.getId();
         this.username = account.getUsername();
         this.password = account.getPassword();
         this.email = account.getEmail();

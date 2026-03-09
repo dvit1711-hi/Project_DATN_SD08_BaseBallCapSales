@@ -24,41 +24,36 @@ public class AccountController {
         return accountService.getAlladdressDtos();
     }
 
+    @GetMapping("/{id}")
+    public GetAccountDto getAccountById(@PathVariable Integer id){
+        return accountService.getAccountById(id);
+    }
+
     @PostMapping
     public ResponseEntity<Account> postAccountDto(@Valid @RequestBody PostAccountDto postAccountDto) {
         Account account =accountService.postAccount(postAccountDto);
         return ResponseEntity.ok(account);
     }
 
-    // Thông tin người dùng
-//    @GetMapping
-//    public List<GetAccountDto> getAllAccount() {
-//        return accountService.getAlladdressDtos();
-//    }
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateAccount(@PathVariable Integer id, @Valid @RequestBody PutAccountDto dto) {
+        Account update = accountService.updateAccount(id, dto);
+        if (update == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(update);
+    }
 
-//    @PostMapping
-//    public ResponseEntity<Account> createAccount(@Valid @RequestBody PostAccountDto dto) {
-//        Account acc = accountService.createAccount(dto);
-//        return ResponseEntity.ok(acc);
-//    }
-//
-//    @PutMapping("/{id}")
-//    public ResponseEntity<?> updateAccount(@PathVariable Integer id, @Valid @RequestBody PutAccountDto dto) {
-//        Account update = accountService.updateAccount(id, dto);
-//        if (update == null) {
-//            return ResponseEntity.notFound().build();
-//        }
-//        return ResponseEntity.ok(update);
-//    }
-//
-//    @DeleteMapping("/{id}")
-//    public ResponseEntity<?> deleteAccount(@PathVariable Integer id) {
-//        boolean deleted = accountService.deleteAccount(id);
-//        if (!deleted) {
-//            return ResponseEntity
-//                    .status(404)
-//                    .body("Customer not found");
-//        }
-//        return ResponseEntity.ok().build();
-//    }
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteAccount(@PathVariable Integer id) {
+        boolean deleted = accountService.deleteAccount(id);
+        if (!deleted) {
+            return ResponseEntity
+                    .status(404)
+                    .body("Customer not found");
+        }
+        return ResponseEntity.ok().build();
+    }
+
+
 }
