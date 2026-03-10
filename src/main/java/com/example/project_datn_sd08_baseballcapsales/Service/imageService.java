@@ -20,6 +20,10 @@ public class imageService {
     @Autowired
     private ProductColorRepository productColorRepository;
 
+    public List<Image> getImagesByProductColor(Integer id){
+        return imageRepository.findByProductColorID_Id(id);
+    }
+
     public List<GetImageDto> getAllImages() {
         return imageRepository.findAll().stream()
                 .map(GetImageDto::new)

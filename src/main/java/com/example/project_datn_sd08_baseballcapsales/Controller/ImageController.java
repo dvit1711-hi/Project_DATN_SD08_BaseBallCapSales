@@ -23,6 +23,10 @@ public class ImageController {
     public List<GetImageDto> getAll() {
         return imageService.getAllImages();
     }
+    @GetMapping("/product-color/{id}")
+    public List<Image> getByProductColor(@PathVariable Integer id){
+        return imageService.getImagesByProductColor(id);
+    }
 
     @PostMapping
     public ResponseEntity<?> postImage(@Valid @RequestBody PostImageDto dto) {

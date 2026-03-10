@@ -49,7 +49,7 @@ public class AddressService {
         address.setCity(dto.getCity());
         address.setRegion(dto.getRegion());
         address.setPostalCode(dto.getPostalCode());
-        address.setAccountID(account);
+        address.setAccount(account);
 
         return addressRepository.save(address);
     }
@@ -72,7 +72,7 @@ public class AddressService {
         if (dto.getAccountID() != null) {
             Account account = accountRepository.findById(dto.getAccountID())
                     .orElseThrow(() -> new RuntimeException("Account not found"));
-            address.setAccountID(account);
+            address.setAccount(account);
         }
 
         return addressRepository.save(address);
@@ -85,5 +85,9 @@ public class AddressService {
         }
         addressRepository.deleteById(id);
         return true;
+    }
+
+    public Address getAddressByAccountId(int accountId) {
+        return addressRepository.findByAccount_Id(accountId);
     }
 }

@@ -59,6 +59,6 @@ public class Address {
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "accountID")
-    private Account accountID;
+    private Account account;
 
 }

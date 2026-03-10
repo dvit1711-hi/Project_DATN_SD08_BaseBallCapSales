@@ -11,5 +11,7 @@ import java.util.Optional;
 
 @Repository
 public interface AccountRoleRepository extends JpaRepository<AccountRole, Integer> {
-    List<AccountRole> findByAccountID(Account accountID);
+    List<AccountRole> findByAccount(Account account);
+
+    List<AccountRole> findByAccount_Id(Integer accountId);
 }

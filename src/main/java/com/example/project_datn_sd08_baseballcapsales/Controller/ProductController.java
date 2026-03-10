@@ -2,7 +2,7 @@ package com.example.project_datn_sd08_baseballcapsales.Controller;
 
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.ProductDto.ProductCardDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.ProductDto.ProductColorDto;
-import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetAddressDto;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.ProductDto.ProductDetailDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetProductDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.PostDto.PostProductDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Product;
@@ -29,10 +29,13 @@ public class ProductController {
     public List<ProductCardDto> getProductCards() {
         return productColorService.getProductCards();
     }
-
-    @GetMapping("/{id}")
-    public GetProductDto getproductById(@PathVariable Integer id){
-        return productService.getproductById(id);
+//    @GetMapping("/{id}")
+//    public Product findById(@PathVariable Integer id) {
+//        return productService.getProductById(id);
+//    }
+    @GetMapping("/detail/{id}")
+    public ProductDetailDto getProductDetail(@PathVariable Integer id){
+        return productColorService.getProductDetail(id);
     }
 
     @PostMapping
