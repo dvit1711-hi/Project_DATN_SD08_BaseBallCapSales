@@ -16,25 +16,23 @@ import org.hibernate.annotations.ColumnDefault;
 @Setter
 @Getter
 public class CartItem {
+
     @Id
-    @Column(name = "cartItemID", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "cartItemID")
     private Integer id;
 
     @JsonIgnore
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cartID", nullable = false)
     private Cart cartID;
 
     @JsonIgnore
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "productID", nullable = false)
-    private Product productID;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "productColorID", nullable = false)
+    private ProductColor productColorID;
 
     @NotNull
-    @ColumnDefault("1")
     @Column(name = "quantity", nullable = false)
     private Integer quantity;
-
-
 }

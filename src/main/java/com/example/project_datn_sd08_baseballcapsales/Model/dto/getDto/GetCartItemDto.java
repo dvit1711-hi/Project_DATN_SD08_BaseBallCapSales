@@ -19,8 +19,8 @@ public class GetCartItemDto {
         if (item.getCartID() != null) {
             this.cartID = item.getCartID().getId();
         }
-        if (item.getProductID() != null) {
-            this.productID = item.getProductID().getId();
+        if (item.getProductColorID() != null) {
+            this.productID = item.getProductColorID().getId();
         }
         this.quantity = item.getQuantity();
     }
