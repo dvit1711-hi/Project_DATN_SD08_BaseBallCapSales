@@ -49,6 +49,8 @@ public class GetAccountDto {
     @ColumnDefault("getdate()")
     private Instant createDate;
 
+    private String statusName;
+
     public GetAccountDto(Account account) {
         this.id = account.getId();
         this.username = account.getUsername();
@@ -57,5 +59,8 @@ public class GetAccountDto {
         this.phoneNumber = account.getPhoneNumber();
         this.images = account.getImages();
         this.createDate = account.getCreateDate();
+        if(account.getStatus() != null){
+            this.statusName = account.getStatus().getStatusName();
+        }
     }
 }
