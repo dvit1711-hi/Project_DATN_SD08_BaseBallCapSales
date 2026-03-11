@@ -47,16 +47,11 @@ public class GetProductDto {
 //        }
 //    }
     private Integer productID;
-    private List<ProductColorDto> colors;
 
     public GetProductDto(Product product) {
         this.productID = product.getId();
         this.productName = product.getProductName();
         this.description = product.getDescription();
         this.price = product.getPrice();
-        this.colors = product.getProductColors()
-                .stream()
-                .map(ProductColorDto::new)
-                .toList();
     }
 }

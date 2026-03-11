@@ -19,7 +19,7 @@ public class AccountRolesService {
     AccountRoleRepository accountRoleRepository;
 
     public List<AccountRole> findByUser(Account account) {
-        return accountRoleRepository.findByAccountID(account);
+        return accountRoleRepository.findByAccount(account);
     }
 
     @Autowired
@@ -49,8 +49,8 @@ public class AccountRolesService {
 
         // 3. Tạo AccountRole
         AccountRole accountRole = new AccountRole();
-        accountRole.setAccountID(savedAccount);
-        accountRole.setRoleID(roleUser);
+        accountRole.setAccount(savedAccount);
+        accountRole.setRole(roleUser);
 
         accountRoleRepository.save(accountRole);
     }

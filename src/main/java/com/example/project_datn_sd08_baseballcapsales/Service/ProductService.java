@@ -1,7 +1,5 @@
 package com.example.project_datn_sd08_baseballcapsales.Service;
 
-import com.example.project_datn_sd08_baseballcapsales.Model.dto.ProductDto.ProductCardDto;
-import com.example.project_datn_sd08_baseballcapsales.Model.dto.ProductDto.ProductDetailDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetProductDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.PostDto.PostProductDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.PutDto.PutProductDto;
@@ -9,7 +7,6 @@ import com.example.project_datn_sd08_baseballcapsales.Model.entity.Brand;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Product;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.ProductColor;
 import com.example.project_datn_sd08_baseballcapsales.Repository.BrandRepository;
-import com.example.project_datn_sd08_baseballcapsales.Repository.ProductColorRepository;
 import com.example.project_datn_sd08_baseballcapsales.Repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -23,8 +20,6 @@ public class ProductService {
     private ProductRepository productRepository;
     @Autowired
     private BrandRepository brandRepository;
-    @Autowired
-    private ProductColorRepository productColorRepository;
 
     public List<GetProductDto> getAllProducts() {
         return productRepository.findAll()
@@ -32,12 +27,6 @@ public class ProductService {
                 .map(GetProductDto::new)
                 .toList();
     }
-
-    public Product getProductById(Integer id) {
-        return productRepository.findById(id).get();
-    }
-
-
 
     public Product PostProductDto (PostProductDto postProductDto) {
         Brand brand =brandRepository.findById(postProductDto.getBrandID())
@@ -70,10 +59,11 @@ public class ProductService {
     }
 
     public boolean deleteProduct(Integer id) {
-        if(!productRepository.existsById(id)) {
-            throw new IllegalArgumentException("DonHang id " + id + " not found");
-        }
-        productRepository.deleteById(id);
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Product id " + id + " not found"));
+
+        product.setStatus("INACTIVE"); // Hoặc "DELETED" tuỳ convention
+        productRepository.save(product);
         return true;
     }
 }

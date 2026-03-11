@@ -1,22 +1,34 @@
 package com.example.project_datn_sd08_baseballcapsales.Controller;
 
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.AccountDto.AccountUpdateDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.PutDto.PutAccountDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetAccountDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.PostDto.PostAccountDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Account;
+import com.example.project_datn_sd08_baseballcapsales.Model.entity.Address;
+import com.example.project_datn_sd08_baseballcapsales.Repository.AccountRepository;
+import com.example.project_datn_sd08_baseballcapsales.Repository.AddressRepository;
 import com.example.project_datn_sd08_baseballcapsales.Service.AccountService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/account")
 public class AccountController {
     @Autowired
     private AccountService accountService;
+//    @Autowired
+//    private AddressService addressService;
+    @Autowired
+    private AccountRepository accountRepository;
+    @Autowired
+    private AddressRepository addressRepository;
 
     // Địa chỉ
     @GetMapping
@@ -27,6 +39,25 @@ public class AccountController {
     @GetMapping("/{id}")
     public GetAccountDto getAccountById(@PathVariable Integer id){
         return accountService.getAccountById(id);
+    }
+
+    @GetMapping("/getById/{id}")
+    public ResponseEntity<?> getById(@PathVariable int id) {
+
+        Account acc = accountRepository.findById(id).orElse(null);
+        Address address = addressRepository.findByAccount_Id(id);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("account", acc);
+        result.put("address", address);
+
+        return ResponseEntity.ok(result);
+    }
+
+    @PutMapping("/update-full")
+    public ResponseEntity<?> updateFull(@RequestBody AccountUpdateDto dto) {
+        accountService.updateFull(dto);
+        return ResponseEntity.ok("Updated successfully");
     }
 
     @PostMapping
