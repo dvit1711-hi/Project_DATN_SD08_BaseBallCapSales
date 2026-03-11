@@ -70,10 +70,11 @@ public class ProductService {
     }
 
     public boolean deleteProduct(Integer id) {
-        if(!productRepository.existsById(id)) {
-            throw new IllegalArgumentException("DonHang id " + id + " not found");
-        }
-        productRepository.deleteById(id);
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Product id " + id + " not found"));
+
+        product.setStatus("INACTIVE"); // Hoặc "DELETED" tuỳ convention
+        productRepository.save(product);
         return true;
     }
 }

@@ -25,9 +25,13 @@ public class ProductController {
     @Autowired
     private ProductColorService productColorService;
 
-    @GetMapping
+    @GetMapping("/card")
     public List<ProductCardDto> getProductCards() {
         return productColorService.getProductCards();
+    }
+    @GetMapping
+    public List<GetProductDto> getAllProducts() {
+        return productService.getAllProducts();
     }
 //    @GetMapping("/{id}")
 //    public Product findById(@PathVariable Integer id) {
@@ -56,8 +60,8 @@ public class ProductController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteDonHang(@PathVariable Integer id){
+    public ResponseEntity<?> deleteProduct(@PathVariable Integer id){
         productService.deleteProduct(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok("Product status changed to INACTIVE");
     }
 }
