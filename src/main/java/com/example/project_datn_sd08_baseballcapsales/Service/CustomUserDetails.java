@@ -30,7 +30,7 @@ public class CustomUserDetails implements UserDetailsService {
                 account.getUsername(),
                 account.getPassword() != null ? account.getPassword() : "",
                 rolesList.stream().map(role -> new SimpleGrantedAuthority
-                                (role.getRoleID().getRoleName()))
+                                (role.getRole().getRoleName()))
                         .toList()
         );
     }

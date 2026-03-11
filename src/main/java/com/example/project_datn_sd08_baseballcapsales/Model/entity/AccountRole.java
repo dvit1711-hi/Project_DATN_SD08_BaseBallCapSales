@@ -19,12 +19,12 @@ public class AccountRole {
     @MapsId("accountID")
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "accountID", nullable = false)
-    private Account accountID;
+    private Account account;
 
     @MapsId("roleID")
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "roleID", nullable = false)
-    private Role roleID;
+    private Role role;
 
 
 }

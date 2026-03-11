@@ -50,17 +50,15 @@ public class PaymentService {
         order.setStatus("CONFIRMED");
         order = orderRepository.save(order);
         for (CartItem item : cartItems) {
-            BigDecimal price = item.getProductID().getPrice();
+            BigDecimal price = item.getProductColorID().getProductID().getPrice();
             total = total.add(
                     price.multiply(BigDecimal.valueOf(item.getQuantity()))
             );
-
             OrderDetail detail = new OrderDetail();
             detail.setOrderID(order);
-            detail.setProductID(item.getProductID());
+            detail.setProductColorID(item.getProductColorID());
             detail.setQuantity(item.getQuantity());
             detail.setPrice(price);
-
             orderDetailRepository.save(detail);
         }
         order.setTotalAmount(total);

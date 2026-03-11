@@ -43,8 +43,8 @@ public class GetOrderDetailDto {
         this.id = od.getId();
         this.quantity = od.getQuantity();
         this.price = od.getPrice();
-        if (od.getProductID() != null) {
-            this.productName = od.getProductID().getProductName();
+        if (od.getProductColorID() != null) {
+            this.productName = od.getProductColorID().getProductID().getProductName();
         }
 
         if (od.getOrderID() != null) {

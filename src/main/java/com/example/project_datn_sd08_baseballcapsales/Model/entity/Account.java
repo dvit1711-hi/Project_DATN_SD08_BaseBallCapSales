@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.Nationalized;
 
 import java.time.Instant;
@@ -22,7 +23,6 @@ import java.util.List;
 public class Account {
     @Id
     @Column(name = "accountID", nullable = false)
-
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
@@ -53,8 +53,12 @@ public class Account {
     @Column(name = "images")
     private String images;
 
-    @ColumnDefault("getdate()")
-    @Column(name = "createDate")
+    @CreationTimestamp
+    @Column(name = "createDate", updatable = false, nullable = false)
     private Instant createDate;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "statusID")
+    private Status status;
 
 }

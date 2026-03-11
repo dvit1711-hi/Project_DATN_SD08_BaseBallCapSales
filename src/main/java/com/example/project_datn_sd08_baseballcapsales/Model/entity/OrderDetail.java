@@ -16,28 +16,23 @@ import java.math.BigDecimal;
 @Setter
 @Getter
 public class OrderDetail {
+
     @Id
-    @Column(name = "orderDetailsID", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "orderDetailsID")
     private Integer id;
 
-    @NotNull
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "orderID", nullable = false)
     private Order orderID;
 
-    @NotNull
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "productID", nullable = false)
-    private Product productID;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "productColorID", nullable = false)
+    private ProductColor productColorID;
 
-    @NotNull
     @Column(name = "quantity", nullable = false)
     private Integer quantity;
 
-    @NotNull
-    @Column(name = "price", nullable = false, precision = 12, scale = 2)
+    @Column(name = "price", nullable = false)
     private BigDecimal price;
-
-
 }

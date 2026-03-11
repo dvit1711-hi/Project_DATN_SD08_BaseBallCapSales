@@ -8,8 +8,7 @@ import lombok.*;
 @Getter
 public class PostCartItemDto {
 
-    private Integer cartItemID;
     private Integer cartID;
-    private Integer productID;
+    private Integer productColorID;
     private Integer quantity;
 }
