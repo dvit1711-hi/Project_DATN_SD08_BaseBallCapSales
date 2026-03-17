@@ -24,11 +24,11 @@ public class ColorController {
         return colorService.getAllColors();
     }
 
-    @PostMapping
-    public ResponseEntity<?> postColor(@Valid @RequestBody PostColorDto dto) {
-        Color color = colorService.postColor(dto);
-        return ResponseEntity.ok(color);
-    }
+//    @PostMapping
+//    public ResponseEntity<?> postColor(@Valid @RequestBody PostColorDto dto) {
+//        Color color = colorService.postColor(dto);
+//        return ResponseEntity.ok(color);
+//    }
 
     @PutMapping("/{id}")
     public ResponseEntity<?> putColor(@PathVariable Integer id,

@@ -1,6 +1,7 @@
 package com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto;
 
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.ProductDto.ProductColorDto;
+import com.example.project_datn_sd08_baseballcapsales.Model.entity.Brand;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Product;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -36,16 +37,8 @@ public class GetProductDto {
     @NotNull
     @Nationalized
     private String name;
+    private Integer brandID; // thêm field brandID
 
-//    public GetProductDto(Product product) {
-//        this.productName = product.getProductName();
-//        this.description = product.getDescription();
-//        this.price = product.getPrice();
-//        this.status = product.getStatus();
-//        if(product.getBrandID() != null){
-//            this.name = product.getBrandID().getName();
-//        }
-//    }
     private Integer productID;
 
     public GetProductDto(Product product) {
@@ -53,5 +46,10 @@ public class GetProductDto {
         this.productName = product.getProductName();
         this.description = product.getDescription();
         this.price = product.getPrice();
+        this.status = product.getStatus();
+        if(product.getBrandID() != null){
+            this.brandID = product.getBrandID().getBrandID(); // ID của brand
+            this.name = product.getBrandID().getName();
+        }
     }
 }

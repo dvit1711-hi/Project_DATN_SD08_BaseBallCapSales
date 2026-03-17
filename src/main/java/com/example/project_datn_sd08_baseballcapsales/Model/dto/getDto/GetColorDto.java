@@ -11,6 +11,7 @@ import org.hibernate.annotations.Nationalized;
 @NoArgsConstructor
 @AllArgsConstructor
 public class GetColorDto {
+    private Integer colorId;
     @NotBlank
     @Size(max = 50)
     @Nationalized
@@ -21,6 +22,7 @@ public class GetColorDto {
     private String colorCode;
 
     public GetColorDto(Color color) {
+        this.colorId = color.getId();
         this.colorName = color.getColorName();
         this.colorCode = color.getColorCode();
     }

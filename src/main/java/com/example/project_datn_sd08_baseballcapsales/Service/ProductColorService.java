@@ -75,20 +75,5 @@ public class ProductColorService {
                 .map(ProductCardDto::new)
                 .toList();
     }
-//    @PostMapping("/{productId}/color")
-//    public ResponseEntity<ProductColor> addProductColor(
-//            @PathVariable Integer productId,
-//            @RequestBody ProductColorDto dto) {
-//
-//        Product product = productRepository.findById(productId)
-//                .orElseThrow(() -> new RuntimeException("Product not found"));
-//
-//        ProductColor pc = new ProductColor();
-//        pc.setProductID(product);
-//        pc.setColorID(dto.getColorID()); // colorID từ table Colors
-//        pc.setStockQuantity(dto.getStockQuantity());
-//
-//        ProductColor saved = productColorRepository.save(pc);
-//        return ResponseEntity.ok(saved);
-//    }
+
 }
