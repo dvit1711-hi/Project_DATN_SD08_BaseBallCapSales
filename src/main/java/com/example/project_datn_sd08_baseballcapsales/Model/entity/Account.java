@@ -47,9 +47,8 @@ public class Account {
     @Column(name = "phoneNumber", length = 20)
     private String phoneNumber;
 
-    @Size(max = 255)
     @Nationalized
-    @Column(name = "images")
+    @Column(name = "images", columnDefinition = "NVARCHAR(MAX)")
     private String images;
 
     @CreationTimestamp

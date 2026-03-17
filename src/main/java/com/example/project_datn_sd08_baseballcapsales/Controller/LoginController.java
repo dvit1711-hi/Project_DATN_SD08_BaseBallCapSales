@@ -42,7 +42,9 @@ public class LoginController {
         // trả token ra body
         return ResponseEntity.ok(Map.of(
                 "message", "Đăng nhập thành công",
-                "token", accessToken
+                "token", accessToken,
+                "accountId", loginResponse.getAccountId(),
+                "username", loginResponse.getUsername()
         ));
     }
 }
