@@ -72,19 +72,4 @@ public class PaymentService {
         cartItemRepository.deleteAll(cartItems);
         return order;
     }
-
-    @Transactional
-    public String markOnlineSuccess(Integer orderId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng"));
-
-        Payment payment = paymentRepository.findByOrderID(order)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy thanh toán"));
-        order.setStatus("PAID");
-        payment.setStatus("PAID");
-        orderRepository.save(order);
-        paymentRepository.save(payment);
-
-        return "SUCCESS";
-    }
 }
