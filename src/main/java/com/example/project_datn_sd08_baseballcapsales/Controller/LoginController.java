@@ -24,9 +24,11 @@ public class LoginController {
     private AuthService authService;
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest, HttpServletResponse response){
-        LoginResponse loginResponse=authService.login(loginRequest);
-        String accessToken=loginResponse.getAccessToken();
+    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest, HttpServletResponse response) {
+
+        LoginResponse loginResponse = authService.login(loginRequest);
+        String accessToken = loginResponse.getAccessToken();
+
         ResponseCookie accessCookie = ResponseCookie.from("access_token", accessToken)
                 .httpOnly(true)
                 .secure(false) // dev
@@ -35,9 +37,13 @@ public class LoginController {
                 .sameSite("Lax")
                 .build();
 
-        response.addHeader(HttpHeaders.SET_COOKIE,accessCookie.toString());
+        response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
 
-        return ResponseEntity.ok(Map.of("message", "Đăng nhập thành công"));
+        // trả token ra body
+        return ResponseEntity.ok(Map.of(
+                "message", "Đăng nhập thành công",
+                "token", accessToken
+        ));
     }
 }
 

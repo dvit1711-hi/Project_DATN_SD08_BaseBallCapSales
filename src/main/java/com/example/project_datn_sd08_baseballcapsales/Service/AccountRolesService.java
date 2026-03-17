@@ -1,5 +1,6 @@
 package com.example.project_datn_sd08_baseballcapsales.Service;
 
+import com.example.project_datn_sd08_baseballcapsales.Model.entity.AccountRoleId;
 import com.example.project_datn_sd08_baseballcapsales.payload.request.RegisterRequest;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Account;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.AccountRole;
@@ -33,24 +34,27 @@ public class AccountRolesService {
 
     public void registerUser(RegisterRequest request) {
 
-        // 1. Tạo Account
+        // tạo account
         Account account = new Account();
         account.setUsername(request.getUsername());
+        account.setPassword(passwordEncoder.encode(request.getPassword()));
         account.setEmail(request.getEmail());
 
-        // 🔐 encode password
-        account.setPassword(passwordEncoder.encode(request.getPassword()));
+        account = accountRepository.save(account); // lấy lại account có ID
 
-        Account savedAccount = accountRepository.save(account);
+        // lấy role USER
+        Role role = roleRepository.findByRoleName("ROLE_USER");
 
-        // 2. Lấy role USER
-        Role roleUser = roleRepository.findByRoleName("ROLE_USER")
-                .orElseThrow(() -> new RuntimeException("Role USER not found"));
+        // tạo khóa chính
+        AccountRoleId id = new AccountRoleId();
+        id.setAccountID(account.getId());
+        id.setRoleID(role.getId());
 
-        // 3. Tạo AccountRole
+        // tạo accountRole
         AccountRole accountRole = new AccountRole();
-        accountRole.setAccount(savedAccount);
-        accountRole.setRole(roleUser);
+        accountRole.setId(id);
+        accountRole.setAccount(account);
+        accountRole.setRole(role);
 
         accountRoleRepository.save(accountRole);
     }
