@@ -48,4 +48,21 @@ public class Product {
 
     @OneToMany(mappedBy = "productID")
     private List<ProductColor> productColors;
+
+    public Product(String productName, Brand brandID, String description, BigDecimal price, String status) {
+        this.productName = productName;
+        this.brandID = brandID;
+        this.description = description;
+        this.price = price;
+        this.status = status;
+    }
+
+    public Product(Integer id, String productName, String description, BigDecimal price, String status, Brand brandID) {
+        this.id = id;
+        this.productName = productName;
+        this.description = description;
+        this.price = price;
+        this.status = status;
+        this.brandID = brandID;
+    }
 }

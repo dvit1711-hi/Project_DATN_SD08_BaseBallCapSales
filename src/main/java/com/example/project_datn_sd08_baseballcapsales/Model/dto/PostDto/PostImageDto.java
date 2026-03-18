@@ -11,14 +11,8 @@ import org.hibernate.annotations.Nationalized;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PostImageDto {
-
-    @NotNull
     private Integer productColorID;
-
-    @Size(max = 255)
-    @Nationalized
     private String imageUrl;
-
     @ColumnDefault("0")
     private Boolean isMain;
 }

@@ -13,18 +13,17 @@ import lombok.Setter;
 @Setter
 @Getter
 public class AccountRole {
+
     @EmbeddedId
     private AccountRoleId id;
 
+    @ManyToOne
     @MapsId("accountID")
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "accountID", nullable = false)
+    @JoinColumn(name = "accountID")
     private Account account;
 
+    @ManyToOne
     @MapsId("roleID")
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "roleID", nullable = false)
+    @JoinColumn(name = "roleID")
     private Role role;
-
-
 }
