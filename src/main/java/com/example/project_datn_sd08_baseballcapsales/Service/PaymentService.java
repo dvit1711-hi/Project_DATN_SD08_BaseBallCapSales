@@ -2,9 +2,7 @@ package com.example.project_datn_sd08_baseballcapsales.Service;
 
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.*;
 import com.example.project_datn_sd08_baseballcapsales.Repository.*;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
