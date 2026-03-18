@@ -51,7 +51,8 @@ public class ImageController {
         Image image = new Image();
         image.setProductColorID(pc);
         image.setImageUrl(dto.getImageUrl());
-        image.setIsMain(dto.getIsMain() == null);
+        // Kiểm tra xem đã có ảnh chính chưa
+        boolean hasMain = imageRepository.existsByProductColorIDAndIsMainTrue(pc);        image.setIsMain(!hasMain); // ảnh đầu tiên → true, các ảnh tiếp theo → false
         Image saved = imageRepository.save(image);
         return ResponseEntity.ok(saved);
     }
