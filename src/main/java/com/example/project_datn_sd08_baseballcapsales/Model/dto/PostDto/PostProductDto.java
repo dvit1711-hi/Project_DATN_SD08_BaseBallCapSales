@@ -29,11 +29,6 @@ public class PostProductDto {
     @Size(max = 20)
     private String status;
 
-    @Size(max = 100)
-    @NotNull
-    @Nationalized
-    private String name;
-
     private Integer brandID;
 
 

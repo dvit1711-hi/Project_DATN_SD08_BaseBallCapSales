@@ -1,9 +1,13 @@
 package com.example.project_datn_sd08_baseballcapsales.Controller;
 
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.PostDto.PostImageDto;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.ProductDto.ImageDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.PutDto.PutImageDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetImageDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Image;
+import com.example.project_datn_sd08_baseballcapsales.Model.entity.ProductColor;
+import com.example.project_datn_sd08_baseballcapsales.Repository.ImageRepository;
+import com.example.project_datn_sd08_baseballcapsales.Repository.ProductColorRepository;
 import com.example.project_datn_sd08_baseballcapsales.Service.imageService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +22,10 @@ public class ImageController {
 
     @Autowired
     private imageService imageService;
+    @Autowired
+    private ProductColorRepository productColorRepository;
+    @Autowired
+    private ImageRepository imageRepository;
 
     @GetMapping
     public List<GetImageDto> getAll() {
@@ -28,6 +36,26 @@ public class ImageController {
         return imageService.getImagesByProductColor(id);
     }
 
+    @PostMapping("/color/{productColorId}/image")
+    public ResponseEntity<Image> addImage(
+            @PathVariable Integer productColorId,
+            @RequestBody PostImageDto dto) {
+
+        if (productColorId == null || dto.getImageUrl() == null) {
+            throw new IllegalArgumentException("productColorId and imageUrl must not be null");
+        }
+
+        ProductColor pc = productColorRepository.findById(productColorId)
+                .orElseThrow(() -> new RuntimeException("ProductColor not found"));
+
+        Image image = new Image();
+        image.setProductColorID(pc);
+        image.setImageUrl(dto.getImageUrl());
+        // Kiểm tra xem đã có ảnh chính chưa
+        boolean hasMain = imageRepository.existsByProductColorIDAndIsMainTrue(pc);        image.setIsMain(!hasMain); // ảnh đầu tiên → true, các ảnh tiếp theo → false
+        Image saved = imageRepository.save(image);
+        return ResponseEntity.ok(saved);
+    }
     @PostMapping
     public ResponseEntity<?> postImage(@Valid @RequestBody PostImageDto dto) {
         Image img = imageService.postImage(dto);

@@ -23,12 +23,12 @@ public class ColorService {
                 .toList();
     }
 
-    public Color postColor(PostColorDto dto) {
-        Color color = new Color();
-        color.setColorName(dto.getColorName());
-        color.setColorCode(dto.getColorCode());
-        return colorRepository.save(color);
-    }
+//    public Color postColor(PostColorDto dto) {
+//        Color color = new Color();
+//        color.setColorName(dto.getColorName());
+//        color.setColorCode(dto.getColorCode());
+//        return colorRepository.save(color);
+//    }
 
     public Color putColor(Integer id, PutColorDto dto) {
         Color color = colorRepository.findById(id).orElse(null);
