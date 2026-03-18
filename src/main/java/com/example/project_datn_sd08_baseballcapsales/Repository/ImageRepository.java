@@ -11,5 +11,5 @@ import java.util.List;
 public interface ImageRepository extends JpaRepository<Image, Integer> {
     List<Image> findByProductColorID_Id(Integer productColorID);
 
-    boolean existsByProductColorIDAndIsMainTrue(@NotNull ProductColor productColorID, Boolean isMain);
+    boolean existsByProductColorIDAndIsMainTrue(ProductColor productColor);
 }
