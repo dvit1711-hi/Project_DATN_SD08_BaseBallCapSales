@@ -24,35 +24,73 @@ public class DiscountCouponService {
     }
 
     public DiscountCoupon postdiscount(PostDiscountCouponDto dto) {
-
         DiscountCoupon discountCoupon = new DiscountCoupon();
         discountCoupon.setCouponCode(dto.getCouponCode());
+        discountCoupon.setName(dto.getName());
+        discountCoupon.setDiscountType(dto.getDiscountType());
         discountCoupon.setDiscountValue(dto.getDiscountValue());
-        discountCoupon.setExpiryDate(dto.getExpiryDate());
-        discountCoupon.setStatus(dto.getStatus());
+        discountCoupon.setMinOrderValue(dto.getMinOrderValue());
+        discountCoupon.setMaxDiscountValue(dto.getMaxDiscountValue());
+        discountCoupon.setQuantity(dto.getQuantity());
+        discountCoupon.setStartDate(dto.getStartDate());
+        discountCoupon.setEndDate(dto.getEndDate());
+        discountCoupon.setActive(dto.getActive() != null ? dto.getActive() : true);
+        discountCoupon.setDescription(dto.getDescription());
+        discountCoupon.setStatus("ACTIVE");
 
         return discountCouponRepository.save(discountCoupon);
     }
 
     public DiscountCoupon putCoupon(Integer id, PutDiscountCouponDto dto) {
         DiscountCoupon discountCoupon = discountCouponRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("discountCoupon not found"));;
-        if (discountCoupon == null) return null;
+                .orElseThrow(() -> new RuntimeException("Coupon không tìm thấy"));
 
-        discountCoupon.setCouponCode(dto.getCouponCode());
-        discountCoupon.setDiscountValue(dto.getDiscountValue());
-        discountCoupon.setExpiryDate(dto.getExpiryDate());
-        discountCoupon.setStatus(dto.getStatus());
+        if (dto.getCouponCode() != null)
+            discountCoupon.setCouponCode(dto.getCouponCode());
+        if (dto.getName() != null)
+            discountCoupon.setName(dto.getName());
+        if (dto.getDiscountType() != null)
+            discountCoupon.setDiscountType(dto.getDiscountType());
+        if (dto.getDiscountValue() != null)
+            discountCoupon.setDiscountValue(dto.getDiscountValue());
+        if (dto.getMinOrderValue() != null)
+            discountCoupon.setMinOrderValue(dto.getMinOrderValue());
+        if (dto.getMaxDiscountValue() != null)
+            discountCoupon.setMaxDiscountValue(dto.getMaxDiscountValue());
+        if (dto.getQuantity() != null)
+            discountCoupon.setQuantity(dto.getQuantity());
+        if (dto.getStartDate() != null)
+            discountCoupon.setStartDate(dto.getStartDate());
+        if (dto.getEndDate() != null)
+            discountCoupon.setEndDate(dto.getEndDate());
+        if (dto.getActive() != null)
+            discountCoupon.setActive(dto.getActive());
+        if (dto.getDescription() != null)
+            discountCoupon.setDescription(dto.getDescription());
 
         return discountCouponRepository.save(discountCoupon);
     }
 
     public boolean delete(Integer id) {
-        if (discountCouponRepository.existsById(id)) {
+        if (!discountCouponRepository.existsById(id)) {
             throw new RuntimeException("discountCoupon not found");
         }
         discountCouponRepository.deleteById(id);
         return true;
+    }
+
+    public GetDiscountCouponDto getCouponById(Integer id) {
+        return discountCouponRepository.findById(id)
+                .map(GetDiscountCouponDto::new)
+                .orElseThrow(() -> new RuntimeException("discountCoupon not found"));
+    }
+
+    public List<GetDiscountCouponDto> getCouponsByStatus(String status) {
+        return discountCouponRepository.findAll()
+                .stream()
+                .filter(c -> c.getStatus() != null && c.getStatus().equals(status))
+                .map(GetDiscountCouponDto::new)
+                .toList();
     }
 
 }

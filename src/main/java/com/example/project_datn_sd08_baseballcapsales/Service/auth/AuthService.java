@@ -66,6 +66,6 @@ public class AuthService {
         Account account= accountRepository.findByUsername(userDetails.getUsername()).orElseThrow(
                 () -> new UsernameNotFoundException("User not found")
         );
-        return new LoginResponse(accessToken);
+        return new LoginResponse(accessToken, account.getId(), account.getUsername());
     }
 }
