@@ -28,11 +28,11 @@ public class Order {
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "accountID", nullable = false)
-    private Account accountID;
+    private Account account;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "couponID")
-    private DiscountCoupon couponID;
+    private DiscountCoupon coupon;
 
     @ColumnDefault("getdate()")
     @Column(name = "orderDate")

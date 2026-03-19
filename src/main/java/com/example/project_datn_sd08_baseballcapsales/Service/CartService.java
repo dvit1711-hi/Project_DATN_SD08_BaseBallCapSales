@@ -33,7 +33,7 @@ public class CartService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"));
 
         Cart cart = new Cart();
-        cart.setAccountID(acc);
+        cart.setAccount(acc);
 
         return cartRepository.save(cart);
     }
@@ -45,7 +45,7 @@ public class CartService {
         Account acc = accountRepository.findById(dto.getAccountID())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"));
 
-        cart.setAccountID(acc);
+        cart.setAccount(acc);
 
         return cartRepository.save(cart);
     }

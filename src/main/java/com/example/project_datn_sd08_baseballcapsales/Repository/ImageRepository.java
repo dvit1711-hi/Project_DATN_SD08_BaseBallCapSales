@@ -9,7 +9,7 @@ import java.util.List;
 
 
 public interface ImageRepository extends JpaRepository<Image, Integer> {
-    List<Image> findByProductColorID_Id(Integer productColorID);
+    List<Image> findByProductColor_Id(Integer productColorID);
 
-    boolean existsByProductColorIDAndIsMainTrue(ProductColor productColor);
+    boolean existsByProductColorAndIsMainTrue(ProductColor productColor);
 }
