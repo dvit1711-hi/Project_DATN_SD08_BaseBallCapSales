@@ -52,7 +52,7 @@ public class ProductService {
         product1.setDescription( putProductDto.getDescription());
         product1.setPrice( putProductDto.getPrice());
         product1.setStatus( putProductDto.getStatus());
-        Brand brand = brandRepository.findById(id)
+        Brand brand = brandRepository.findById(putProductDto.getBrandID())
                 .orElseThrow(() -> new RuntimeException("Brand not found"));
         product1.setBrandID(brand);
         return productRepository.save(product1);
