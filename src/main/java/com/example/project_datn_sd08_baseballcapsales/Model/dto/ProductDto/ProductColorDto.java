@@ -17,7 +17,7 @@ public class ProductColorDto {
 
     public ProductColorDto(ProductColor pc) {
         this.productColorID = pc.getId();
-        this.colorName = pc.getColorID().getColorName();
+        this.colorName = pc.getColor().getColorName();
         this.stockQuantity = pc.getStockQuantity();
         this.images = pc.getImages()
                 .stream()

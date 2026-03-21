@@ -26,11 +26,11 @@ public class GetImageDto {
     public GetImageDto(Image img) {
         this.imageUrl = img.getImageUrl();
         this.isMain = img.getIsMain();
-        if (img.getProductColorID() != null
-                && img.getProductColorID().getProductID() != null) {
+        if (img.getProductColor() != null
+                && img.getProductColor().getProduct() != null) {
 
-            this.productName = img.getProductColorID()
-                    .getProductID()
+            this.productName = img.getProductColor()
+                    .getProduct()
                     .getProductName();
         }
     }

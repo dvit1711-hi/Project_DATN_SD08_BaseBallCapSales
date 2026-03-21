@@ -35,26 +35,26 @@ public class PaymentService {
     public Order checkoutCOD(Integer accountId) {
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"));
-        Cart cart = cartRepository.findByAccountID_Id(accountId);
+        Cart cart = cartRepository.findByAccount_Id(accountId);
 
         List<CartItem> cartItems =
-                cartItemRepository.findByCartID_Id(cart.getId());
+                cartItemRepository.findByCart_Id(cart.getId());
         if (cartItems.isEmpty()) {
             throw new RuntimeException("Giỏ hàng trống");
         }
         BigDecimal total = BigDecimal.ZERO;
         Order order = new Order();
-        order.setAccountID(account);
+        order.setAccount(account);
         order.setStatus("CONFIRMED");
         order = orderRepository.save(order);
         for (CartItem item : cartItems) {
-            BigDecimal price = item.getProductColorID().getProductID().getPrice();
+            BigDecimal price = item.getProduct().getPrice();
             total = total.add(
                     price.multiply(BigDecimal.valueOf(item.getQuantity()))
             );
             OrderDetail detail = new OrderDetail();
-            detail.setOrderID(order);
-            detail.setProductColorID(item.getProductColorID());
+            detail.setOrder(order);
+            detail.setProduct(item.getProduct());
             detail.setQuantity(item.getQuantity());
             detail.setPrice(price);
             orderDetailRepository.save(detail);

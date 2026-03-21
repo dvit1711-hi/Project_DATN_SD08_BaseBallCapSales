@@ -2,6 +2,7 @@ package com.example.project_datn_sd08_baseballcapsales.Controller;
 
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.AccountDto.AccountUpdateDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.PutDto.PutAccountDto;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.PutDto.PutStatusDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetAccountDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.PostDto.PostAccountDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Account;
@@ -9,6 +10,7 @@ import com.example.project_datn_sd08_baseballcapsales.Model.entity.Address;
 import com.example.project_datn_sd08_baseballcapsales.Repository.AccountRepository;
 import com.example.project_datn_sd08_baseballcapsales.Repository.AddressRepository;
 import com.example.project_datn_sd08_baseballcapsales.Service.AccountService;
+import com.example.project_datn_sd08_baseballcapsales.payload.request.ChangePasswordRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -54,16 +56,29 @@ public class AccountController {
         return ResponseEntity.ok(result);
     }
 
+    @PostMapping
+    public ResponseEntity<Account> postAccountDto(@Valid @RequestBody PostAccountDto postAccountDto) {
+        Account account =accountService.postAccount(postAccountDto);
+        return ResponseEntity.ok(account);
+    }
+
     @PutMapping("/update-full")
     public ResponseEntity<?> updateFull(@RequestBody AccountUpdateDto dto) {
         accountService.updateFull(dto);
         return ResponseEntity.ok("Updated successfully");
     }
 
-    @PostMapping
-    public ResponseEntity<Account> postAccountDto(@Valid @RequestBody PostAccountDto postAccountDto) {
-        Account account =accountService.postAccount(postAccountDto);
-        return ResponseEntity.ok(account);
+    @PutMapping("/change-password")
+    public ResponseEntity<?> changePassword(@RequestBody ChangePasswordRequest request) {
+        accountService.changePassword(request);
+        return ResponseEntity.ok(Map.of("message", "Đổi mật khẩu thành công"));
+    }
+
+    @PutMapping("/{id}/status")
+    public ResponseEntity<?> updateStatus(@PathVariable Integer id,
+                                          @RequestBody PutStatusDto dto) {
+        accountService.updateStatus(id, dto);
+        return ResponseEntity.ok(Map.of("message", "Cập nhật trạng thái thành công"));
     }
 
     @PutMapping("/{id}")

@@ -30,7 +30,7 @@ public class ProductColorService {
         Product product = productRepository.findById(id).orElse(null);
 
         List<ProductColor> productColors =
-                productColorRepository.findByProductID_Id(id);
+                productColorRepository.findByProduct_Id(id);
 
         List<ColorDetailDto> colors = new ArrayList<>();
 
@@ -39,11 +39,11 @@ public class ProductColorService {
             ColorDetailDto colorDto = new ColorDetailDto();
 
             colorDto.setProductColorID(pc.getId());
-            colorDto.setColorName(pc.getColorID().getColorName());
-            colorDto.setColorCode(pc.getColorID().getColorCode());
+            colorDto.setColorName(pc.getColor().getColorName());
+            colorDto.setColorCode(pc.getColor().getColorCode());
 
             List<Image> images =
-                    imageRepository.findByProductColorID_Id(pc.getId());
+                    imageRepository.findByProductColor_Id(pc.getId());
 
             List<String> imageUrls = images
                     .stream()

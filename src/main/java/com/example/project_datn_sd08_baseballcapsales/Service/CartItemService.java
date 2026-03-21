@@ -8,8 +8,7 @@ import com.example.project_datn_sd08_baseballcapsales.Model.entity.CartItem;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Product;
 import com.example.project_datn_sd08_baseballcapsales.Repository.CartItemRepository;
 import com.example.project_datn_sd08_baseballcapsales.Repository.CartRepository;
-import com.example.project_datn_sd08_baseballcapsales.Model.entity.ProductColor;
-import com.example.project_datn_sd08_baseballcapsales.Repository.ProductColorRepository;
+import com.example.project_datn_sd08_baseballcapsales.Repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -25,7 +24,7 @@ public class CartItemService {
     private CartRepository cartRepository;
 
     @Autowired
-    private ProductColorRepository productColorRepository;
+    private ProductRepository productRepository;
 
     public List<GetCartItemDto> getAll() {
         return cartItemRepository.findAll()
@@ -39,12 +38,12 @@ public class CartItemService {
         Cart cart = cartRepository.findById(dto.getCartID())
                 .orElseThrow(() -> new RuntimeException("Cart not found"));
 
-        ProductColor productColor = productColorRepository.findById(dto.getProductColorID())
-                .orElseThrow(() -> new RuntimeException("ProductColor not found"));
+        Product product = productRepository.findById(dto.getProductID())
+                .orElseThrow(() -> new RuntimeException("Product not found"));
 
         CartItem item = new CartItem();
-        item.setCartID(cart);
-        item.setProductColorID(productColor);
+        item.setCart(cart);
+        item.setProduct(product);
         item.setQuantity(dto.getQuantity());
 
         return cartItemRepository.save(item);
@@ -58,11 +57,11 @@ public class CartItemService {
         Cart cart = cartRepository.findById(dto.getCartID())
                 .orElseThrow(() -> new RuntimeException("Cart not found"));
 
-        ProductColor productColor = productColorRepository.findById(dto.getProductColorID())
-                .orElseThrow(() -> new RuntimeException("ProductColor not found"));
+        Product product = productRepository.findById(dto.getProductID())
+                .orElseThrow(() -> new RuntimeException("Product not found"));
 
-        item.setCartID(cart);
-        item.setProductColorID(productColor);
+        item.setCart(cart);
+        item.setProduct(product);
         item.setQuantity(dto.getQuantity());
 
         return cartItemRepository.save(item);

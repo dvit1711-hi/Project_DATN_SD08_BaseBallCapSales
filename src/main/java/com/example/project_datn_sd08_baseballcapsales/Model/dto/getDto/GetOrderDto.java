@@ -49,11 +49,11 @@ public class GetOrderDto {
         this.orderDate = order.getOrderDate();
         this.status = order.getStatus();
         this.totalAmount = order.getTotalAmount();
-        if (order.getAccountID() != null && order.getAccountID().getEmail() != null) {
-            this.accountCode = order.getAccountID().getEmail();
+        if (order.getAccount() != null && order.getAccount().getEmail() != null) {
+            this.accountCode = order.getAccount().getEmail();
         }
-        if (order.getCouponID() != null && order.getCouponID().getCouponCode() != null) {
-            this.couponCode = order.getCouponID().getCouponCode();
+        if (order.getCoupon() != null && order.getCoupon().getCouponCode() != null) {
+            this.couponCode = order.getCoupon().getCouponCode();
         }
     }
 }

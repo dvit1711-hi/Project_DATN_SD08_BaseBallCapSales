@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/discountpon")
+@RequestMapping("/api/discount-coupons")
 public class DiscountCouponController {
 
     @Autowired
@@ -22,6 +22,20 @@ public class DiscountCouponController {
     @GetMapping
     public List<GetDiscountCouponDto> getAll() {
         return discountCouponService.getAllCoupons();
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getCouponById(@PathVariable Integer id) {
+        try {
+            return ResponseEntity.ok(discountCouponService.getCouponById(id));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(404).body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/status/{status}")
+    public List<GetDiscountCouponDto> getCouponsByStatus(@PathVariable String status) {
+        return discountCouponService.getCouponsByStatus(status);
     }
 
     @PostMapping

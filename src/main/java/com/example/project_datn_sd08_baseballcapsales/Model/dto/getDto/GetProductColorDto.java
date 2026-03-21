@@ -37,12 +37,12 @@ public class GetProductColorDto {
         this.id = pc.getId();
         this.stockQuantity = pc.getStockQuantity();
 
-        if (pc.getProductID() != null) {
-            this.productName = pc.getProductID().getProductName();
+        if (pc.getProduct() != null) {
+            this.productName = pc.getProduct().getProductName();
         }
 
-        if (pc.getColorID() != null) {
-            this.colorName = pc.getColorID().getColorName();
+        if (pc.getColor() != null) {
+            this.colorName = pc.getColor().getColorName();
         }
     }
 }
