@@ -24,10 +24,10 @@ public class GetReviewDto {
 
     public GetReviewDto(Review review) {
         this.id = review.getId();
-        this.productId = review.getProduct().getId();
-        this.productName = review.getProduct().getProductName();
-        this.accountId = review.getAccount().getId();
-        this.username = review.getAccount().getUsername();
+        this.productId = review.getProductID().getId();
+        this.productName = review.getProductID().getProductName();
+        this.accountId = review.getAccountID().getId();
+        this.username = review.getAccountID().getUsername();
         this.rating = review.getRating();
         this.comment = review.getComment();
         this.createdAt = review.getCreatedAt();

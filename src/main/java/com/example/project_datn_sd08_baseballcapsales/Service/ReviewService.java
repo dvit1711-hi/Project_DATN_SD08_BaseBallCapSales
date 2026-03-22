@@ -3,12 +3,9 @@ package com.example.project_datn_sd08_baseballcapsales.Service;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.PostDto.PostReviewDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.PutDto.PutReviewDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetReviewDto;
-import com.example.project_datn_sd08_baseballcapsales.Model.entity.Account;
-import com.example.project_datn_sd08_baseballcapsales.Model.entity.Product;
-import com.example.project_datn_sd08_baseballcapsales.Model.entity.Review;
-import com.example.project_datn_sd08_baseballcapsales.Repository.AccountRepository;
-import com.example.project_datn_sd08_baseballcapsales.Repository.ProductRepository;
-import com.example.project_datn_sd08_baseballcapsales.Repository.ReviewRepository;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetPaidOrderWithDetailsDto;
+import com.example.project_datn_sd08_baseballcapsales.Model.entity.*;
+import com.example.project_datn_sd08_baseballcapsales.Repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -27,6 +24,15 @@ public class ReviewService {
     @Autowired
     private ProductRepository productRepository;
 
+    @Autowired
+    private OrderRepository orderRepository;
+
+    @Autowired
+    private OrderDetailRepository orderDetailRepository;
+
+    @Autowired
+    private PaymentRepository paymentRepository;
+
     // Get all reviews
     public List<GetReviewDto> getAllReviews() {
         return reviewRepository.findAll()
@@ -39,7 +45,7 @@ public class ReviewService {
     public List<GetReviewDto> getReviewsByProductId(Integer productId) {
         return reviewRepository.findAll()
                 .stream()
-                .filter(r -> r.getProduct().getId().equals(productId))
+                .filter(r -> r.getProductID().getId().equals(productId))
                 .map(GetReviewDto::new)
                 .toList();
     }
@@ -48,7 +54,7 @@ public class ReviewService {
     public List<GetReviewDto> getReviewsByAccountId(Integer accountId) {
         return reviewRepository.findAll()
                 .stream()
-                .filter(r -> r.getAccount().getId().equals(accountId))
+                .filter(r -> r.getAccountID().getId().equals(accountId))
                 .map(GetReviewDto::new)
                 .toList();
     }
@@ -70,9 +76,15 @@ public class ReviewService {
         Account account = accountRepository.findById(dto.getAccountId())
                 .orElseThrow(() -> new RuntimeException("Tài khoản không tìm thấy"));
 
+        // Check if the product was purchased in a paid order
+        boolean productPurchased = verifyProductPurchasedInPaidOrder(dto.getAccountId(), dto.getProductId());
+        if (!productPurchased) {
+            throw new RuntimeException("Bạn chỉ có thể đánh giá sản phẩm từ các đơn hàng đã thanh toán");
+        }
+
         Review review = new Review();
-        review.setProduct(product);
-        review.setAccount(account);
+        review.setProductID(product);
+        review.setAccountID(account);
         review.setRating(dto.getRating());
         review.setComment(dto.getComment());
         review.setCreatedAt(Instant.now());
@@ -121,5 +133,38 @@ public class ReviewService {
     // Get total reviews count for product
     public Integer getTotalReviewsForProduct(Integer productId) {
         return getReviewsByProductId(productId).size();
+    }
+
+    // Get paid orders with details for account
+    public List<GetPaidOrderWithDetailsDto> getPaidOrdersWithDetailsForAccount(Integer accountId) {
+        List<Order> paidOrders = orderRepository.findPaidOrdersByAccountId(accountId);
+        return paidOrders.stream().map(order -> {
+            var payment = paymentRepository.findByOrderID(order);
+            String paymentStatus = payment.map(Payment::getStatus).orElse("UNKNOWN");
+            var orderDetails = orderDetailRepository.findAll()
+                    .stream()
+                    .filter(od -> od.getOrderID().getId().equals(order.getId()))
+                    .toList();
+            return new GetPaidOrderWithDetailsDto(order, paymentStatus, orderDetails);
+        }).toList();
+    }
+
+    // Verify if product was purchased in a paid order
+    private boolean verifyProductPurchasedInPaidOrder(Integer accountId, Integer productId) {
+        List<Order> paidOrders = orderRepository.findPaidOrdersByAccountId(accountId);
+        
+        for (Order order : paidOrders) {
+            List<OrderDetail> orderDetails = orderDetailRepository.findAll()
+                    .stream()
+                    .filter(od -> od.getOrderID().getId().equals(order.getId()))
+                    .toList();
+            
+            for (OrderDetail detail : orderDetails) {
+                if (detail.getProductColorID().getProductID().getId().equals(productId)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }

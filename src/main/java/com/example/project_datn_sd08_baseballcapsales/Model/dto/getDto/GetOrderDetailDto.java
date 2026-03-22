@@ -43,12 +43,12 @@ public class GetOrderDetailDto {
         this.id = od.getId();
         this.quantity = od.getQuantity();
         this.price = od.getPrice();
-        if (od.getProduct() != null) {
-            this.productName = od.getProduct().getProductName();
+        if (od.getProductColorID() != null) {
+            this.productName = od.getProductColorID().getProductID().getProductName();
         }
 
-        if (od.getOrder() != null && od.getOrder().getAccount() != null) {
-            this.accountCode = od.getOrder().getAccount().getEmail();
+        if (od.getOrderID() != null) {
+            this.accountCode = od.getOrderID().getAccountID().getEmail();
         }
     }
 }

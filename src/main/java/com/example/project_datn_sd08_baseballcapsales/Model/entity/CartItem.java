@@ -7,7 +7,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.ColumnDefault;
 
 @Entity
 @Table(name = "CartItems")
@@ -25,12 +24,12 @@ public class CartItem {
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cartID", nullable = false)
-    private Cart cart;
+    private Cart cartID;
 
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "productID", nullable = false)
-    private Product product;
+    @JoinColumn(name = "productColorID", nullable = false)
+    private ProductColor productColorID;
 
     @NotNull
     @Column(name = "quantity", nullable = false)

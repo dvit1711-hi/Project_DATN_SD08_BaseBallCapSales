@@ -29,15 +29,25 @@ public class CartService {
     }
 
     public Cart create(PostCartDto dto) {
+
+        // 1. tìm cart theo account
+        Cart existing = cartRepository.findByAccountID_Id(dto.getAccountID())
+                .orElse(null);
+
+        // 2. nếu đã có thì trả về luôn
+        if (existing != null) {
+            return existing;
+        }
+
+        // 3. nếu chưa có thì tạo mới
         Account acc = accountRepository.findById(dto.getAccountID())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"));
 
         Cart cart = new Cart();
-        cart.setAccount(acc);
+        cart.setAccountID(acc);
 
         return cartRepository.save(cart);
     }
-
     public Cart update(Integer id, PutCartDto dto) {
         Cart cart = cartRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy giỏ hàng"));
@@ -45,7 +55,7 @@ public class CartService {
         Account acc = accountRepository.findById(dto.getAccountID())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"));
 
-        cart.setAccount(acc);
+        cart.setAccountID(acc);
 
         return cartRepository.save(cart);
     }

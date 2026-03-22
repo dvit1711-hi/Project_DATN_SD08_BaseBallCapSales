@@ -3,6 +3,7 @@ package com.example.project_datn_sd08_baseballcapsales.Controller;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.PostDto.PostReviewDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.PutDto.PutReviewDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetReviewDto;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetPaidOrderWithDetailsDto;
 import com.example.project_datn_sd08_baseballcapsales.Service.ReviewService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -80,5 +81,12 @@ public class ReviewController {
     public ResponseEntity<String> deleteReview(@PathVariable Integer id) {
         reviewService.deleteReview(id);
         return ResponseEntity.ok("Đánh giá đã được xóa thành công");
+    }
+
+    // Get paid orders with details for account
+    @GetMapping("/account/{accountId}/paid-orders")
+    public ResponseEntity<List<GetPaidOrderWithDetailsDto>> getPaidOrdersWithDetailsForAccount(@PathVariable Integer accountId) {
+        List<GetPaidOrderWithDetailsDto> paidOrders = reviewService.getPaidOrdersWithDetailsForAccount(accountId);
+        return ResponseEntity.ok(paidOrders);
     }
 }

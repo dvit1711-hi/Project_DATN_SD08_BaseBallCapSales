@@ -21,7 +21,7 @@ public class GetBranDto {
     private String name;
 
     public GetBranDto(Brand brand) {
-        this.brandID = brand.getBrand();
+        this.brandID = brand.getBrandID();
         this.name = brand.getName();
     }
 }

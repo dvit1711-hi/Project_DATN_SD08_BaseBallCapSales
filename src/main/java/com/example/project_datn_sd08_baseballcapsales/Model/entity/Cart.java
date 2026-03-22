@@ -22,7 +22,7 @@ public class Cart {
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "accountID", nullable = false)
-    private Account account;
+    private Account accountID;
 
 
 }
