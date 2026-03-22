@@ -22,14 +22,14 @@ public class ProductCardDto {
 
     public ProductCardDto(ProductColor pc) {
 
-        this.productID = pc.getProduct().getId();
+        this.productID = pc.getProductID().getId();
         this.productColorID = pc.getId();
-        this.productName = pc.getProduct().getProductName();
-        this.price = pc.getProduct().getPrice();
-        this.status = pc.getProduct().getStatus();
+        this.productName = pc.getProductID().getProductName();
+        this.price = pc.getProductID().getPrice();
+        this.status = pc.getProductID().getStatus();
 
-        this.colorName = pc.getColor().getColorName();
-        this.colorCode = pc.getColor().getColorCode();
+        this.colorName = pc.getColorID().getColorName();
+        this.colorCode = pc.getColorID().getColorCode();
 
         this.mainImage = pc.getImages()
                 .stream()
