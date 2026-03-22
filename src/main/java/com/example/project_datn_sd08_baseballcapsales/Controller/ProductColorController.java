@@ -49,6 +49,11 @@ public class ProductColorController {
         if (productId == null || dto.getColorId() == null) {
             throw new IllegalArgumentException("productId and colorId must not be null");
         }
+        if (dto.getColorId() == null)
+            throw new IllegalArgumentException("colorId không được để trống");
+        if (dto.getStockQuantity() != null && dto.getStockQuantity() < 0)
+            throw new IllegalArgumentException("stockQuantity phải >= 0");
+
 
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found"));

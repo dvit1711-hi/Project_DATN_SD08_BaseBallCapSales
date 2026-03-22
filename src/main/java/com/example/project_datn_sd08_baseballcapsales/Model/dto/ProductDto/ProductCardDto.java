@@ -18,6 +18,7 @@ public class ProductCardDto {
     private String colorName;
     private String colorCode;
     private String mainImage;
+    private String status;
 
     public ProductCardDto(ProductColor pc) {
 
@@ -25,6 +26,7 @@ public class ProductCardDto {
         this.productColorID = pc.getId();
         this.productName = pc.getProduct().getProductName();
         this.price = pc.getProduct().getPrice();
+        this.status = pc.getProduct().getStatus();
 
         this.colorName = pc.getColor().getColorName();
         this.colorCode = pc.getColor().getColorCode();
