@@ -11,6 +11,7 @@ import com.example.project_datn_sd08_baseballcapsales.Repository.ProductReposito
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -29,6 +30,15 @@ public class ProductService {
     }
 
     public Product PostProductDto (PostProductDto postProductDto) {
+        if(postProductDto.getProductName() == null || postProductDto.getProductName().isBlank())
+            throw new IllegalArgumentException("Tên sản phẩm không được để trống");
+        if(postProductDto.getPrice() == null || postProductDto.getPrice().compareTo(BigDecimal.ZERO) < 0)
+            throw new IllegalArgumentException("Giá sản phẩm không hợp lệ");
+        if(postProductDto.getBrandID() == null)
+            throw new IllegalArgumentException("BrandID không được để trống");
+        if(postProductDto.getStatus() == null || (!postProductDto.getStatus().equals("ACTIVE") && !postProductDto.getStatus().equals("INACTIVE")))
+            throw new IllegalArgumentException("Status phải là ACTIVE hoặc INACTIVE");
+
         Brand brand =brandRepository.findById(postProductDto.getBrandID())
                 .orElseThrow(() -> new RuntimeException("Brand not found"));
 

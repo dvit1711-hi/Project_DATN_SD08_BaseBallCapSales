@@ -73,6 +73,7 @@ public class ProductColorService {
         return productColorRepository.findAll()
                 .stream()
                 .map(ProductCardDto::new)
+                .filter(dto -> "ACTIVE".equals(dto.getStatus())) // chỉ lấy sản phẩm ACTIVE
                 .toList();
     }
 
