@@ -25,8 +25,7 @@ import java.util.Map;
 public class AccountController {
     @Autowired
     private AccountService accountService;
-//    @Autowired
-//    private AddressService addressService;
+
     @Autowired
     private AccountRepository accountRepository;
     @Autowired
@@ -100,6 +99,5 @@ public class AccountController {
         }
         return ResponseEntity.ok().build();
     }
-
 
 }
