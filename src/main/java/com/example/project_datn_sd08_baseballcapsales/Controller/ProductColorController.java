@@ -73,7 +73,7 @@ public class ProductColorController {
     public ResponseEntity<?> deleteProductColor(@PathVariable Integer productcolorId) {
         ProductColor pc = productColorRepository.findById(productcolorId)
                 .orElseThrow(() -> new RuntimeException("Product color not found"));
-        List<Image> images = imageRepository.findByProductColor_Id(productcolorId);
+        List<Image> images = imageRepository.findByProductColorID_Id(productcolorId);
         imageRepository.deleteAll(images);
         productColorRepository.delete(pc);
         return ResponseEntity.noContent().build();
