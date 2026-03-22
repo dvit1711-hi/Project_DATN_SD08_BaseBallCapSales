@@ -15,6 +15,7 @@ import lombok.Setter;
 public class Status {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "statusID")
     private Integer id;
     @Column(name = "statusName")
     private String statusName;

@@ -25,16 +25,16 @@ public class ProductColor {
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "productID", nullable = false)
-    private Product productID;
+    private Product product;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "colorID", nullable = false)
-    private Color colorID;
+    private Color color;
 
     @Column(name = "stockQuantity")
     private Integer stockQuantity;
 
-    @OneToMany(mappedBy = "productColorID")
+    @OneToMany(mappedBy = "productColor")
     private List<Image> images;
 }

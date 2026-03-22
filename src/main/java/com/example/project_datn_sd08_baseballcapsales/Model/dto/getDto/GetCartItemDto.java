@@ -16,11 +16,11 @@ public class GetCartItemDto {
 
     public GetCartItemDto(CartItem item) {
         this.cartItemID = item.getId();
-        if (item.getCartID() != null) {
-            this.cartID = item.getCartID().getId();
+        if (item.getCart() != null) {
+            this.cartID = item.getCart().getId();
         }
-        if (item.getProductColorID() != null) {
-            this.productID = item.getProductColorID().getId();
+        if (item.getProduct() != null) {
+            this.productID = item.getProduct().getId();
         }
         this.quantity = item.getQuantity();
     }

@@ -14,8 +14,8 @@ public class GetCartDto {
 
     public GetCartDto(Cart cart) {
         this.cartID = cart.getId();
-        if (cart.getAccountID() != null) {
-            this.accountID = cart.getAccountID().getId();
+        if (cart.getAccount() != null) {
+            this.accountID = cart.getAccount().getId();
         }
     }
 }

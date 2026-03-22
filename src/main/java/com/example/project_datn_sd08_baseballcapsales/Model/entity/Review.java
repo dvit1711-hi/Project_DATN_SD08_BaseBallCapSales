@@ -27,12 +27,12 @@ public class Review {
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "productID", nullable = false)
-    private Product productID;
+    private Product product;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "accountID", nullable = false)
-    private Account accountID;
+    private Account account;
 
     @Column(name = "rating")
     private Integer rating;

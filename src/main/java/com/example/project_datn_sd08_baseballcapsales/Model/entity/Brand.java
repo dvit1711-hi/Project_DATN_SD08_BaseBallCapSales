@@ -19,7 +19,7 @@ public class Brand {
     @Id
     @Column(name = "brandID", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer brandID;
+    private Integer brand;
 
     @Size(max = 100)
     @NotNull

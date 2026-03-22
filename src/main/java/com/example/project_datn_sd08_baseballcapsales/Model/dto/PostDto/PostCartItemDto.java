@@ -9,6 +9,6 @@ import lombok.*;
 public class PostCartItemDto {
 
     private Integer cartID;
-    private Integer productColorID;
+    private Integer productID;
     private Integer quantity;
 }
