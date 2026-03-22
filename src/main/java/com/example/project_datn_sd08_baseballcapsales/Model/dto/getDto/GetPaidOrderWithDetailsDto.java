@@ -24,9 +24,10 @@ public class GetPaidOrderWithDetailsDto {
     private String orderStatus;
     private BigDecimal totalAmount;
     private String paymentStatus;
+    private String paymentMethod;
     private List<OrderItemDetailsDto> items;
 
-    public GetPaidOrderWithDetailsDto(Order order, String paymentStatus, List<OrderDetail> orderDetails) {
+    public GetPaidOrderWithDetailsDto(Order order, String paymentStatus, String paymentMethod, List<OrderDetail> orderDetails) {
         this.orderId = order.getId();
         this.accountId = order.getAccountID().getId();
         this.accountUsername = order.getAccountID().getUsername();
@@ -34,6 +35,7 @@ public class GetPaidOrderWithDetailsDto {
         this.orderStatus = order.getStatus();
         this.totalAmount = order.getTotalAmount();
         this.paymentStatus = paymentStatus;
+        this.paymentMethod = paymentMethod;
         this.items = new ArrayList<>();
 
         if (orderDetails != null) {

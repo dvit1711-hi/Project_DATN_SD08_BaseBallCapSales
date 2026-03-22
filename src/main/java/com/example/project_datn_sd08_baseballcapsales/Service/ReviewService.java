@@ -141,24 +141,19 @@ public class ReviewService {
         return paidOrders.stream().map(order -> {
             var payment = paymentRepository.findByOrderID(order);
             String paymentStatus = payment.map(Payment::getStatus).orElse("UNKNOWN");
-            var orderDetails = orderDetailRepository.findAll()
-                    .stream()
-                    .filter(od -> od.getOrderID().getId().equals(order.getId()))
-                    .toList();
-            return new GetPaidOrderWithDetailsDto(order, paymentStatus, orderDetails);
+            String paymentMethod = payment.map(Payment::getMethod).orElse("UNKNOWN");
+            var orderDetails = orderDetailRepository.findByOrderID_Id(order.getId());
+            return new GetPaidOrderWithDetailsDto(order, paymentStatus, paymentMethod, orderDetails);
         }).toList();
     }
 
     // Verify if product was purchased in a paid order
     private boolean verifyProductPurchasedInPaidOrder(Integer accountId, Integer productId) {
         List<Order> paidOrders = orderRepository.findPaidOrdersByAccountId(accountId);
-        
+
         for (Order order : paidOrders) {
-            List<OrderDetail> orderDetails = orderDetailRepository.findAll()
-                    .stream()
-                    .filter(od -> od.getOrderID().getId().equals(order.getId()))
-                    .toList();
-            
+            List<OrderDetail> orderDetails = orderDetailRepository.findByOrderID_Id(order.getId());
+
             for (OrderDetail detail : orderDetails) {
                 if (detail.getProductColorID().getProductID().getId().equals(productId)) {
                     return true;
