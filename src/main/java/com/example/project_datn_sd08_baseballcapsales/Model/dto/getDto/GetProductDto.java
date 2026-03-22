@@ -48,7 +48,7 @@ public class GetProductDto {
         this.price = product.getPrice();
         this.status = product.getStatus();
         if(product.getBrandID() != null){
-            this.brandID = product.getBrandID().getBrand(); // ID của brand
+            this.brandID = product.getBrandID().getBrandID(); // ID của brand
             this.name = product.getBrandID().getName();
         }
     }

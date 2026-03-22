@@ -57,8 +57,8 @@ public class ProductColorController {
                 .orElseThrow(() -> new RuntimeException("Color not found"));
 
         ProductColor pc = new ProductColor();
-        pc.setProduct(product);
-        pc.setColor(color);
+        pc.setProductID(product);
+        pc.setColorID(color);
         pc.setStockQuantity(dto.getStockQuantity() != null ? dto.getStockQuantity() : 0);
 
         ProductColor saved = productColorRepository.save(pc);

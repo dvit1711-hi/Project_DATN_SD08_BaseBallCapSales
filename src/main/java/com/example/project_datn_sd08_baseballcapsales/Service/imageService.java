@@ -21,7 +21,7 @@ public class imageService {
     private ProductColorRepository productColorRepository;
 
     public List<Image> getImagesByProductColor(Integer id){
-        return imageRepository.findByProductColor_Id(id);
+        return imageRepository.findByProductColorID_Id(id);
     }
 
     public List<GetImageDto> getAllImages() {
@@ -37,7 +37,7 @@ public class imageService {
         if (pc == null) return null;
 
         Image image = new Image();
-        image.setProductColor(pc);
+        image.setProductColorID(pc);
         image.setImageUrl(dto.getImageUrl());
         image.setIsMain(dto.getIsMain() != null ? dto.getIsMain() : false);
 

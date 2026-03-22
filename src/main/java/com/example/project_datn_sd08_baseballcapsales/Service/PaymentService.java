@@ -31,69 +31,43 @@ public class PaymentService {
     private AccountRepository accountRepository;
 
 //    tien mat
-@Transactional
-public Order checkoutCOD(Integer accountId) {
-
-    Account account = accountRepository.findById(accountId)
-            .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"));
-
-    Cart cart = cartRepository.findByAccountID_Id(accountId)
-            .orElseThrow(() -> new RuntimeException("Không tìm thấy giỏ hàng"));
-
-    List<CartItem> cartItems = cartItemRepository.findByCartID_Id(cart.getId());
-
-    if (cartItems.isEmpty()) {
-        throw new RuntimeException("Giỏ hàng trống");
-    }
-
-    BigDecimal total = BigDecimal.ZERO;
-
-    // tính tiền + check stock
-    for (CartItem item : cartItems) {
-        ProductColor pc = item.getProductColorID();
-
-        if (item.getQuantity() > pc.getStockQuantity()) {
-            throw new RuntimeException("Không đủ hàng");
+    @Transactional
+    public Order checkoutCOD(Integer accountId) {
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"));
+        Cart cart = cartRepository.findByAccountID_Id(accountId)
+                .orElse(null);
+        List<CartItem> cartItems =
+                cartItemRepository.findByCartID_Id(cart.getId());
+        if (cartItems.isEmpty()) {
+            throw new RuntimeException("Giỏ hàng trống");
         }
-
-        BigDecimal price = pc.getProductID().getPrice();
-        total = total.add(price.multiply(BigDecimal.valueOf(item.getQuantity())));
+        BigDecimal total = BigDecimal.ZERO;
+        Order order = new Order();
+        order.setAccountID(account);
+        order.setStatus("CONFIRMED");
+        order = orderRepository.save(order);
+        for (CartItem item : cartItems) {
+            BigDecimal price = item.getProductColorID().getProductID().getPrice();
+            total = total.add(
+                    price.multiply(BigDecimal.valueOf(item.getQuantity()))
+            );
+            OrderDetail detail = new OrderDetail();
+            detail.setOrderID(order);
+            detail.setProductColorID(item.getProductColorID());
+            detail.setQuantity(item.getQuantity());
+            detail.setPrice(price);
+            orderDetailRepository.save(detail);
+        }
+        order.setTotalAmount(total);
+        orderRepository.save(order);
+        Payment payment = new Payment();
+        payment.setOrderID(order);
+        payment.setAmount(total);
+        payment.setMethod("COD");
+        payment.setStatus("UNPAID");
+        paymentRepository.save(payment);
+        cartItemRepository.deleteAll(cartItems);
+        return order;
     }
-
-    // tạo order
-    Order order = new Order();
-    order.setAccountID(account);
-    order.setStatus("CONFIRMED");
-    order.setTotalAmount(total);
-    order = orderRepository.save(order);
-
-    // tạo order detail + trừ stock
-    for (CartItem item : cartItems) {
-        ProductColor pc = item.getProductColorID();
-
-        OrderDetail detail = new OrderDetail();
-        detail.setOrderID(order);
-        detail.setProductColorID(pc);
-        detail.setQuantity(item.getQuantity());
-        detail.setPrice(pc.getProductID().getPrice());
-
-        orderDetailRepository.save(detail);
-
-        // trừ kho
-        pc.setStockQuantity(pc.getStockQuantity() - item.getQuantity());
-    }
-
-    // payment
-    Payment payment = new Payment();
-    payment.setOrderID(order);
-    payment.setAmount(total);
-    payment.setMethod("COD");
-    payment.setStatus("UNPAID");
-    paymentRepository.save(payment);
-
-    // clear cart
-    cartItemRepository.deleteAll(cartItems);
-
-    return order;
-}
 }

@@ -25,7 +25,7 @@ public class Image {
     @NotNull
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "productColorID", nullable = false)
-    private ProductColor productColor;
+    private ProductColor productColorID;
 
     @Size(max = 255)
     @Nationalized

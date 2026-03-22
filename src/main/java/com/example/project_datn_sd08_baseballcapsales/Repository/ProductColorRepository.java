@@ -9,7 +9,5 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ProductColorRepository extends JpaRepository<ProductColor, Integer> {
-    List<ProductColor> findByProduct_Id(Integer id);
-
-    List<ProductColor> findByStockQuantityLessThanEqual(Integer stockQuantity);
+    List<ProductColor> findByProductID_Id(Integer id);
 }

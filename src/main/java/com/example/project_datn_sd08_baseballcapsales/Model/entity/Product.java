@@ -46,7 +46,7 @@ public class Product {
     @JsonIgnoreProperties({"hibernateLazyInitializer","handler"})
     private Brand brandID;
 
-    @OneToMany(mappedBy = "product")
+    @OneToMany(mappedBy = "productID")
     private List<ProductColor> productColors;
 
     public Product(String productName, Brand brandID, String description, BigDecimal price, String status) {

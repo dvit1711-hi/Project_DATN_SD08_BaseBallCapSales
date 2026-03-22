@@ -49,11 +49,10 @@ public class ImageController {
                 .orElseThrow(() -> new RuntimeException("ProductColor not found"));
 
         Image image = new Image();
-        image.setProductColor(pc);
+        image.setProductColorID(pc);
         image.setImageUrl(dto.getImageUrl());
         // Kiểm tra xem đã có ảnh chính chưa
-        boolean hasMain = imageRepository.existsByProductColorAndIsMainTrue(pc);
-        image.setIsMain(!hasMain); // ảnh đầu tiên → true, các ảnh tiếp theo → false
+        boolean hasMain = imageRepository.existsByProductColorIDAndIsMainTrue(pc);        image.setIsMain(!hasMain); // ảnh đầu tiên → true, các ảnh tiếp theo → false
         Image saved = imageRepository.save(image);
         return ResponseEntity.ok(saved);
     }
