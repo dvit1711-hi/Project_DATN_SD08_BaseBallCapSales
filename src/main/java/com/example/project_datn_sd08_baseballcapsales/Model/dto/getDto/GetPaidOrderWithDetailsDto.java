@@ -22,6 +22,8 @@ public class GetPaidOrderWithDetailsDto {
     private String accountUsername;
     private Instant orderDate;
     private String orderStatus;
+    private String shippingAddress;
+    private String couponCode;
     private BigDecimal totalAmount;
     private String paymentStatus;
     private String paymentMethod;
@@ -33,6 +35,8 @@ public class GetPaidOrderWithDetailsDto {
         this.accountUsername = order.getAccountID().getUsername();
         this.orderDate = order.getOrderDate();
         this.orderStatus = order.getStatus();
+        this.shippingAddress = order.getShippingAddress();
+        this.couponCode = order.getCouponID() != null ? order.getCouponID().getCouponCode() : null;
         this.totalAmount = order.getTotalAmount();
         this.paymentStatus = paymentStatus;
         this.paymentMethod = paymentMethod;

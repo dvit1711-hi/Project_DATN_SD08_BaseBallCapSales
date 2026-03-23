@@ -43,6 +43,11 @@ public class Order {
     @Column(name = "status", length = 50)
     private String status;
 
+    @Size(max = 500)
+    @Nationalized
+    @Column(name = "shippingAddress", length = 500)
+    private String shippingAddress;
+
     @Column(name = "totalAmount", precision = 18, scale = 2)
     private BigDecimal totalAmount;
 

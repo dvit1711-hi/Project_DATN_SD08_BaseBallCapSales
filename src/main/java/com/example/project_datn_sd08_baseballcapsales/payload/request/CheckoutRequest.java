@@ -15,4 +15,5 @@ public class CheckoutRequest {
     private Integer accountId;
     private String method;
     private List<Integer> cartItemIds;
+    private String couponCode;
 }

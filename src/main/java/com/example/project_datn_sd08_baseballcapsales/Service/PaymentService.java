@@ -8,9 +8,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Stream;
 
 @Service
 public class PaymentService {
@@ -36,6 +39,12 @@ public class PaymentService {
     @Autowired
     private AccountRepository accountRepository;
 
+    @Autowired
+    private AddressRepository addressRepository;
+
+    @Autowired
+    private DiscountCouponRepository discountCouponRepository;
+
     //    tien mat
     @Transactional
     public Order checkoutCOD(Integer accountId) {
@@ -44,11 +53,16 @@ public class PaymentService {
 
     @Transactional
     public Order checkout(Integer accountId, String method) {
-        return checkout(accountId, method, null);
+        return checkout(accountId, method, null, null);
     }
 
     @Transactional
     public Order checkout(Integer accountId, String method, List<Integer> selectedCartItemIds) {
+        return checkout(accountId, method, selectedCartItemIds, null);
+    }
+
+    @Transactional
+    public Order checkout(Integer accountId, String method, List<Integer> selectedCartItemIds, String couponCode) {
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"));
         Cart cart = cartRepository.findByAccountID_Id(accountId)
@@ -81,10 +95,12 @@ public class PaymentService {
             throw new RuntimeException("Vui lòng chọn ít nhất 1 sản phẩm để thanh toán");
         }
 
-        BigDecimal total = BigDecimal.ZERO;
+        BigDecimal subTotal = BigDecimal.ZERO;
         Order order = new Order();
         order.setAccountID(account);
         order.setStatus("PENDING_PAYMENT");
+        Address address = addressRepository.findByAccount_Id(accountId);
+        order.setShippingAddress(formatAddressSnapshot(address));
         order = orderRepository.save(order);
         for (CartItem item : cartItems) {
             ProductColor productColor = item.getProductColorID();
@@ -109,7 +125,7 @@ public class PaymentService {
             productColorRepository.save(productColor);
 
             BigDecimal price = item.getProductColorID().getProductID().getPrice();
-            total = total.add(
+            subTotal = subTotal.add(
                     price.multiply(BigDecimal.valueOf(item.getQuantity()))
             );
             OrderDetail detail = new OrderDetail();
@@ -119,6 +135,19 @@ public class PaymentService {
             detail.setPrice(price);
             orderDetailRepository.save(detail);
         }
+
+        DiscountCoupon appliedCoupon = null;
+        BigDecimal discountAmount = BigDecimal.ZERO;
+        if (couponCode != null && !couponCode.trim().isEmpty()) {
+            appliedCoupon = validateCoupon(couponCode.trim(), subTotal);
+            discountAmount = calculateDiscountAmount(appliedCoupon, subTotal);
+            Integer currentQuantity = appliedCoupon.getQuantity() == null ? 0 : appliedCoupon.getQuantity();
+            appliedCoupon.setQuantity(Math.max(currentQuantity - 1, 0));
+            discountCouponRepository.save(appliedCoupon);
+            order.setCouponID(appliedCoupon);
+        }
+
+        BigDecimal total = subTotal.subtract(discountAmount).max(BigDecimal.ZERO);
         order.setTotalAmount(total);
         orderRepository.save(order);
 
@@ -176,5 +205,79 @@ public class PaymentService {
 
         List<OrderDetail> orderDetails = orderDetailRepository.findByOrderID_Id(order.getId());
         return new GetPaidOrderWithDetailsDto(order, paymentStatus, paymentMethod, orderDetails);
+    }
+
+    private String formatAddressSnapshot(Address address) {
+        if (address == null) {
+            return null;
+        }
+
+        return Stream.of(
+                        address.getUnitNumber(),
+                        address.getStreetNumber(),
+                        address.getAddressLine1(),
+                        address.getAddressLine2(),
+                        address.getCity(),
+                        address.getRegion(),
+                        address.getPostalCode()
+                )
+                .filter(part -> part != null && !part.trim().isEmpty())
+                .map(String::trim)
+                .reduce((a, b) -> a + ", " + b)
+                .orElse(null);
+    }
+
+    private DiscountCoupon validateCoupon(String couponCode, BigDecimal orderAmount) {
+        DiscountCoupon coupon = discountCouponRepository.findByCouponCodeIgnoreCase(couponCode)
+                .orElseThrow(() -> new RuntimeException("Mã giảm giá không tồn tại"));
+
+        if (Boolean.FALSE.equals(coupon.getActive())) {
+            throw new RuntimeException("Mã giảm giá đã bị tắt");
+        }
+
+        LocalDate now = LocalDate.now();
+        if (coupon.getStartDate() != null && now.isBefore(coupon.getStartDate())) {
+            throw new RuntimeException("Mã giảm giá chưa đến thời gian áp dụng");
+        }
+        if (coupon.getEndDate() != null && now.isAfter(coupon.getEndDate())) {
+            throw new RuntimeException("Mã giảm giá đã hết hạn");
+        }
+
+        Integer quantity = coupon.getQuantity() == null ? 0 : coupon.getQuantity();
+        if (quantity <= 0) {
+            throw new RuntimeException("Mã giảm giá đã hết lượt sử dụng");
+        }
+
+        BigDecimal minOrder = coupon.getMinOrderValue() == null ? BigDecimal.ZERO : coupon.getMinOrderValue();
+        if (orderAmount.compareTo(minOrder) < 0) {
+            throw new RuntimeException("Đơn hàng chưa đạt giá trị tối thiểu để dùng mã giảm giá");
+        }
+
+        return coupon;
+    }
+
+    private BigDecimal calculateDiscountAmount(DiscountCoupon coupon, BigDecimal orderAmount) {
+        if (coupon.getDiscountValue() == null || coupon.getDiscountValue().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("Giá trị giảm giá không hợp lệ");
+        }
+
+        String type = coupon.getDiscountType() == null ? "" : coupon.getDiscountType().trim().toLowerCase();
+        BigDecimal discount;
+
+        if ("percent".equals(type)) {
+            discount = orderAmount
+                    .multiply(coupon.getDiscountValue())
+                    .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+
+            if (coupon.getMaxDiscountValue() != null && coupon.getMaxDiscountValue().compareTo(BigDecimal.ZERO) > 0) {
+                discount = discount.min(coupon.getMaxDiscountValue());
+            }
+        } else if ("fixed".equals(type)) {
+            discount = coupon.getDiscountValue();
+        } else {
+            throw new RuntimeException("Loại mã giảm giá không hợp lệ");
+        }
+
+        return discount.max(BigDecimal.ZERO).min(orderAmount);
     }
 }

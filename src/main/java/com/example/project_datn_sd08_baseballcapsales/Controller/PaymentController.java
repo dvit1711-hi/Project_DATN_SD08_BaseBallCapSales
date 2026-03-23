@@ -33,7 +33,7 @@ public class PaymentController {
 
     @PostMapping("/checkout/selected")
     public Order checkoutSelected(@RequestBody CheckoutRequest request) {
-        return paymentService.checkout(request.getAccountId(), request.getMethod(), request.getCartItemIds());
+        return paymentService.checkout(request.getAccountId(), request.getMethod(), request.getCartItemIds(), request.getCouponCode());
     }
 
     @GetMapping("/account/{accountId}/orders")
