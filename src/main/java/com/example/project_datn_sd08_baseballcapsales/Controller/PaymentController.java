@@ -4,6 +4,7 @@ import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetPaidOr
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Order;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Payment;
 import com.example.project_datn_sd08_baseballcapsales.Service.PaymentService;
+import com.example.project_datn_sd08_baseballcapsales.payload.request.CheckoutRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -28,6 +29,11 @@ public class PaymentController {
             @RequestParam(defaultValue = "COD") String method
     ) {
         return paymentService.checkout(accountId, method);
+    }
+
+    @PostMapping("/checkout/selected")
+    public Order checkoutSelected(@RequestBody CheckoutRequest request) {
+        return paymentService.checkout(request.getAccountId(), request.getMethod(), request.getCartItemIds());
     }
 
     @GetMapping("/account/{accountId}/orders")

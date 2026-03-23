@@ -8,7 +8,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class PaymentService {
@@ -29,6 +31,9 @@ public class PaymentService {
     private CartItemRepository cartItemRepository;
 
     @Autowired
+    private ProductColorRepository productColorRepository;
+
+    @Autowired
     private AccountRepository accountRepository;
 
     //    tien mat
@@ -39,6 +44,11 @@ public class PaymentService {
 
     @Transactional
     public Order checkout(Integer accountId, String method) {
+        return checkout(accountId, method, null);
+    }
+
+    @Transactional
+    public Order checkout(Integer accountId, String method, List<Integer> selectedCartItemIds) {
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"));
         Cart cart = cartRepository.findByAccountID_Id(accountId)
@@ -46,17 +56,58 @@ public class PaymentService {
         if (cart == null) {
             throw new RuntimeException("Không tìm thấy giỏ hàng");
         }
-        List<CartItem> cartItems =
+        List<CartItem> allCartItems =
                 cartItemRepository.findByCartID_Id(cart.getId());
-        if (cartItems.isEmpty()) {
+
+        if (allCartItems.isEmpty()) {
             throw new RuntimeException("Giỏ hàng trống");
         }
+
+        List<CartItem> cartItems;
+        if (selectedCartItemIds == null || selectedCartItemIds.isEmpty()) {
+            cartItems = allCartItems;
+        } else {
+            Set<Integer> selectedSet = new HashSet<>(selectedCartItemIds);
+            cartItems = allCartItems.stream()
+                    .filter(item -> selectedSet.contains(item.getId()))
+                    .toList();
+
+            if (cartItems.size() != selectedSet.size()) {
+                throw new RuntimeException("Có sản phẩm không thuộc giỏ hàng hiện tại");
+            }
+        }
+
+        if (cartItems.isEmpty()) {
+            throw new RuntimeException("Vui lòng chọn ít nhất 1 sản phẩm để thanh toán");
+        }
+
         BigDecimal total = BigDecimal.ZERO;
         Order order = new Order();
         order.setAccountID(account);
         order.setStatus("PENDING_PAYMENT");
         order = orderRepository.save(order);
         for (CartItem item : cartItems) {
+            ProductColor productColor = item.getProductColorID();
+            if (productColor == null) {
+                throw new RuntimeException("Sản phẩm không hợp lệ trong giỏ hàng");
+            }
+
+            Integer quantity = item.getQuantity();
+            if (quantity == null || quantity <= 0) {
+                throw new RuntimeException("Số lượng sản phẩm không hợp lệ");
+            }
+
+            Integer currentStock = productColor.getStockQuantity() == null ? 0 : productColor.getStockQuantity();
+            if (currentStock < quantity) {
+                String productName = productColor.getProductID() != null
+                        ? productColor.getProductID().getProductName()
+                        : "Sản phẩm";
+                throw new RuntimeException(productName + " không đủ tồn kho");
+            }
+
+            productColor.setStockQuantity(currentStock - quantity);
+            productColorRepository.save(productColor);
+
             BigDecimal price = item.getProductColorID().getProductID().getPrice();
             total = total.add(
                     price.multiply(BigDecimal.valueOf(item.getQuantity()))
