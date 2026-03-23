@@ -41,6 +41,7 @@ public class ProductColorService {
             colorDto.setProductColorID(pc.getId());
             colorDto.setColorName(pc.getColorID().getColorName());
             colorDto.setColorCode(pc.getColorID().getColorCode());
+            colorDto.setStockQuantity(pc.getStockQuantity());
 
             List<Image> images =
                     imageRepository.findByProductColorID_Id(pc.getId());

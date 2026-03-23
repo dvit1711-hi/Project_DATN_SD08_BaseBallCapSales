@@ -11,5 +11,6 @@ public class ColorDetailDto {
     private Integer productColorID;
     private String colorName;
     private String colorCode;
+    private Integer stockQuantity;
     private List<String> images;
 }
