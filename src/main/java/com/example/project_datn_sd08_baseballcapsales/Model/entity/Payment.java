@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.Nationalized;
 
 import java.math.BigDecimal;
@@ -43,9 +44,8 @@ public class Payment {
     @Column(name = "status", length = 50)
     private String status;
 
+    @CreationTimestamp
     @ColumnDefault("getdate()")
-    @Column(name = "createdAt")
+    @Column(name = "createdAt", updatable = false, nullable = false)
     private Instant createdAt;
-
-
 }
