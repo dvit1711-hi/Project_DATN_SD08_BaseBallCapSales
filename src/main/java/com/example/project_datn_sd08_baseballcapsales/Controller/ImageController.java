@@ -85,4 +85,12 @@ public class ImageController {
         }
         return ResponseEntity.noContent().build();
     }
+    @DeleteMapping("/product-color/{productColorId}")
+    public ResponseEntity<?> deleteAllImagesByProductColor(@PathVariable Integer productColorId) {
+        boolean deleted = imageService.deleteAllImagesByProductColorID(productColorId);
+        if (!deleted) {
+            return ResponseEntity.status(404).body("No images found for this product color");
+        }
+        return ResponseEntity.noContent().build();
+    }
 }

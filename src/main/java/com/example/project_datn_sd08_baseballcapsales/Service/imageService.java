@@ -7,6 +7,7 @@ import com.example.project_datn_sd08_baseballcapsales.Model.entity.Image;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.ProductColor;
 import com.example.project_datn_sd08_baseballcapsales.Repository.ImageRepository;
 import com.example.project_datn_sd08_baseballcapsales.Repository.ProductColorRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -62,5 +63,10 @@ public class imageService {
             return false;
         imageRepository.deleteById(id);
         return true;
+    }
+    @Transactional
+    public boolean deleteAllImagesByProductColorID(Integer productColorId) {
+        long deletedCount = imageRepository.deleteByProductColorID_Id(productColorId);
+        return deletedCount > 0;
     }
 }
