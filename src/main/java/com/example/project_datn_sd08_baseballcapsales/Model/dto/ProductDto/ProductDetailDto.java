@@ -18,5 +18,6 @@ public class ProductDetailDto {
     private Integer productID;
     private String productName;
     private Double price;
+    private String description;
     private List<ColorDetailDto> colors;
 }

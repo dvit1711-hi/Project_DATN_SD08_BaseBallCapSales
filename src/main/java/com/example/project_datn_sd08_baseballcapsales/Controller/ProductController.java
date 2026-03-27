@@ -26,7 +26,12 @@ public class ProductController {
     private ProductColorService productColorService;
 
     @GetMapping("/card")
-    public List<ProductCardDto> getProductCards() {
+    public List<ProductCardDto> getProductCards(
+            @RequestParam(value = "search", required = false) String search
+    ) {
+        if (search != null && !search.trim().isEmpty()) {
+            return productColorService.searchProductCards(search);
+        }
         return productColorService.getProductCards();
     }
     @GetMapping

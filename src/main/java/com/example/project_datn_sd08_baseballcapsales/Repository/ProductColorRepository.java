@@ -12,4 +12,9 @@ public interface ProductColorRepository extends JpaRepository<ProductColor, Inte
     List<ProductColor> findByProductID_Id(Integer id);
 
     List<ProductColor> findByStockQuantityLessThanEqual(Integer stockQuantity);
+
+    List<ProductColor> findByProductID_ProductNameContainingIgnoreCaseOrProductID_BrandID_NameContainingIgnoreCase(
+            String productName,
+            String brandName
+    );
 }

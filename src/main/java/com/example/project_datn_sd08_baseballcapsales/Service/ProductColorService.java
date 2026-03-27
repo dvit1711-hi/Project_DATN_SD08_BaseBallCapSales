@@ -61,6 +61,7 @@ public class ProductColorService {
         dto.setProductID(product.getId());
         dto.setProductName(product.getProductName());
         dto.setPrice(product.getPrice().doubleValue());
+        dto.setDescription(product.getDescription());
         dto.setColors(colors);
 
         return dto;
@@ -77,5 +78,22 @@ public class ProductColorService {
                 .filter(dto -> "ACTIVE".equals(dto.getStatus())) // chỉ lấy sản phẩm ACTIVE
                 .toList();
     }
+    public List<ProductCardDto> searchProductCards(String keyword) {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return getProductCards();
+        }
+
+        return productColorRepository
+                .findByProductID_ProductNameContainingIgnoreCaseOrProductID_BrandID_NameContainingIgnoreCase(
+                        keyword.trim(),
+                        keyword.trim()
+                )
+                .stream()
+                .map(ProductCardDto::new)
+                .filter(dto -> "ACTIVE".equals(dto.getStatus()))
+                .toList();
+    }
+
+
 
 }
