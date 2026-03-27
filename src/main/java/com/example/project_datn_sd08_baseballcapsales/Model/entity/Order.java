@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.Nationalized;
 
 import java.math.BigDecimal;
@@ -34,8 +35,9 @@ public class Order {
     @JoinColumn(name = "couponID")
     private DiscountCoupon couponID;
 
+    @CreationTimestamp
     @ColumnDefault("getdate()")
-    @Column(name = "orderDate")
+    @Column(name = "orderDate", updatable = false, nullable = false)
     private Instant orderDate;
 
     @Size(max = 50)
@@ -50,6 +52,4 @@ public class Order {
 
     @Column(name = "totalAmount", precision = 18, scale = 2)
     private BigDecimal totalAmount;
-
-
 }
