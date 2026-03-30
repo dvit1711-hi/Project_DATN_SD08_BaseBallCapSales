@@ -194,6 +194,25 @@ public class PaymentService {
         return paymentRepository.save(payment);
     }
 
+    @Transactional
+    public Order cancelOrderForAccount(Integer accountId, Integer orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng"));
+
+        if (order.getAccountID() == null || !order.getAccountID().getId().equals(accountId)) {
+            throw new RuntimeException("Bạn không có quyền hủy đơn hàng này");
+        }
+
+        return cancelOrderInternal(order);
+    }
+
+    @Transactional
+    public Order cancelOrderByAdmin(Integer orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng"));
+        return cancelOrderInternal(order);
+    }
+
     private GetPaidOrderWithDetailsDto mapOrderToDetailsDto(Order order) {
         var paymentOpt = paymentRepository.findByOrderID(order);
         String paymentStatus = paymentOpt
@@ -225,6 +244,52 @@ public class PaymentService {
                 .map(String::trim)
                 .reduce((a, b) -> a + ", " + b)
                 .orElse(null);
+    }
+
+    private Order cancelOrderInternal(Order order) {
+        String currentOrderStatus = order.getStatus() == null ? "" : order.getStatus().trim().toUpperCase();
+        if ("CANCELLED".equals(currentOrderStatus)) {
+            throw new RuntimeException("Đơn hàng đã được hủy trước đó");
+        }
+
+        Payment payment = paymentRepository.findByOrderID(order).orElse(null);
+        String paymentStatus = payment != null && payment.getStatus() != null
+                ? payment.getStatus().trim().toUpperCase()
+                : "";
+
+        if ("PAID".equals(paymentStatus) || "PAID".equals(currentOrderStatus)) {
+            throw new RuntimeException("Không thể hủy đơn hàng đã thanh toán");
+        }
+
+        List<OrderDetail> details = orderDetailRepository.findByOrderID_Id(order.getId());
+        for (OrderDetail detail : details) {
+            ProductColor productColor = detail.getProductColorID();
+            if (productColor == null) {
+                continue;
+            }
+
+            Integer currentStock = productColor.getStockQuantity() == null ? 0 : productColor.getStockQuantity();
+            Integer quantity = detail.getQuantity() == null ? 0 : detail.getQuantity();
+            productColor.setStockQuantity(currentStock + Math.max(quantity, 0));
+            productColorRepository.save(productColor);
+        }
+
+        DiscountCoupon coupon = order.getCouponID();
+        if (coupon != null) {
+            Integer currentQuantity = coupon.getQuantity() == null ? 0 : coupon.getQuantity();
+            coupon.setQuantity(currentQuantity + 1);
+            discountCouponRepository.save(coupon);
+        }
+
+        order.setStatus("CANCELLED");
+        orderRepository.save(order);
+
+        if (payment != null) {
+            payment.setStatus("CANCELLED");
+            paymentRepository.save(payment);
+        }
+
+        return order;
     }
 
     private DiscountCoupon validateCoupon(String couponCode, BigDecimal orderAmount) {
