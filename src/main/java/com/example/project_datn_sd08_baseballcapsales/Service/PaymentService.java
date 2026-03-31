@@ -124,7 +124,7 @@ public class PaymentService {
             productColor.setStockQuantity(currentStock - quantity);
             productColorRepository.save(productColor);
 
-            BigDecimal price = item.getProductColorID().getProductID().getPrice();
+            BigDecimal price = item.getProductColorID().getPrice();
             subTotal = subTotal.add(
                     price.multiply(BigDecimal.valueOf(item.getQuantity()))
             );
