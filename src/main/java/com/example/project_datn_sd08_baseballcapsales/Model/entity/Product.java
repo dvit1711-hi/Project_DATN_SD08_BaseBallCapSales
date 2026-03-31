@@ -9,7 +9,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.Nationalized;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 @Entity
@@ -19,6 +18,7 @@ import java.util.List;
 @Getter
 @Setter
 public class Product {
+
     @Id
     @Column(name = "productID", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -34,9 +34,6 @@ public class Product {
     @Column(name = "description", length = 500)
     private String description;
 
-    @Column(name = "price", precision = 12, scale = 2)
-    private BigDecimal price;
-
     @Size(max = 20)
     @Column(name = "status", length = 20)
     private String status;
@@ -46,23 +43,28 @@ public class Product {
     @JsonIgnoreProperties({"hibernateLazyInitializer","handler"})
     private Brand brandID;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "materialID")
+    @JsonIgnoreProperties({"hibernateLazyInitializer","handler"})
+    private Material materialID;
+
     @OneToMany(mappedBy = "productID")
     private List<ProductColor> productColors;
 
-    public Product(String productName, Brand brandID, String description, BigDecimal price, String status) {
+    public Product(String productName, Brand brandID, String description, String status, Material materialID) {
         this.productName = productName;
         this.brandID = brandID;
         this.description = description;
-        this.price = price;
         this.status = status;
+        this.materialID = materialID;
     }
 
-    public Product(Integer id, String productName, String description, BigDecimal price, String status, Brand brandID) {
+    public Product(Integer id, String productName, String description, String status, Brand brandID, Material materialID) {
         this.id = id;
         this.productName = productName;
         this.description = description;
-        this.price = price;
         this.status = status;
         this.brandID = brandID;
+        this.materialID = materialID;
     }
 }

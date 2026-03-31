@@ -1,13 +1,11 @@
 package com.example.project_datn_sd08_baseballcapsales.Controller;
 
-import com.example.project_datn_sd08_baseballcapsales.Model.dto.ProductDto.ProductCardDto;
-import com.example.project_datn_sd08_baseballcapsales.Model.dto.ProductDto.ProductColorDto;
-import com.example.project_datn_sd08_baseballcapsales.Model.dto.ProductDto.ProductDetailDto;
-import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetProductDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.PostDto.PostProductDto;
-import com.example.project_datn_sd08_baseballcapsales.Model.entity.Product;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.ProductDto.ProductCardDto;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.ProductDto.ProductDetailDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.PutDto.PutProductDto;
-import com.example.project_datn_sd08_baseballcapsales.Model.entity.ProductColor;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetProductDto;
+import com.example.project_datn_sd08_baseballcapsales.Model.entity.Product;
 import com.example.project_datn_sd08_baseballcapsales.Service.ProductColorService;
 import com.example.project_datn_sd08_baseballcapsales.Service.ProductService;
 import jakarta.validation.Valid;
@@ -20,8 +18,10 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/product")
 public class ProductController {
+
     @Autowired
     private ProductService productService;
+
     @Autowired
     private ProductColorService productColorService;
 
@@ -34,38 +34,30 @@ public class ProductController {
         }
         return productColorService.getProductCards();
     }
+
     @GetMapping
     public List<GetProductDto> getAllProducts() {
         return productService.getAllProducts();
     }
-//    @GetMapping("/{id}")
-//    public Product findById(@PathVariable Integer id) {
-//        return productService.getProductById(id);
-//    }
+
     @GetMapping("/detail/{id}")
-    public ProductDetailDto getProductDetail(@PathVariable Integer id){
+    public ProductDetailDto getProductDetail(@PathVariable Integer id) {
         return productColorService.getProductDetail(id);
     }
 
     @PostMapping
-    public ResponseEntity<Product> postProduct(@Valid @RequestBody PostProductDto dto){
-        Product product =productService.PostProductDto(dto);
-        return ResponseEntity.ok(product);
+    public ResponseEntity<Product> createProduct(@Valid @RequestBody PostProductDto dto) {
+        return ResponseEntity.ok(productService.createProduct(dto));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> putDonHang(@PathVariable Integer id,@Valid @RequestBody PutProductDto dto){
-        Product product = productService.PutProductDto(id, dto);
-        if (product == null) {
-            return ResponseEntity
-                    .status(404)
-                    .body("DonHang Not Found");
-        }
-        return ResponseEntity.ok(product);
+    public ResponseEntity<Product> updateProduct(@PathVariable Integer id,
+                                                 @Valid @RequestBody PutProductDto dto) {
+        return ResponseEntity.ok(productService.updateProduct(id, dto));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteProduct(@PathVariable Integer id){
+    public ResponseEntity<String> deleteProduct(@PathVariable Integer id) {
         productService.deleteProduct(id);
         return ResponseEntity.ok("Product status changed to INACTIVE");
     }
