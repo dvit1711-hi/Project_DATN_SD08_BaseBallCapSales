@@ -59,4 +59,7 @@ public class Account {
     @JoinColumn(name = "statusID")
     private Status status;
 
+    @OneToMany(mappedBy = "account", fetch = FetchType.LAZY)
+    private Set<AccountRole> accountRoles;
+
 }

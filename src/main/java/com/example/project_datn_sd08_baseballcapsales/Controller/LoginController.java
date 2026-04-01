@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Duration;
 import java.util.Map;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/auth")
@@ -31,7 +32,7 @@ public class LoginController {
 
         ResponseCookie accessCookie = ResponseCookie.from("access_token", accessToken)
                 .httpOnly(true)
-                .secure(false) // dev
+                .secure(false)
                 .path("/")
                 .maxAge(Duration.ofDays(1))
                 .sameSite("Lax")
@@ -39,12 +40,15 @@ public class LoginController {
 
         response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
 
-        // trả token ra body
+        Set<String> roles = loginResponse.getRoles();
+
         return ResponseEntity.ok(Map.of(
                 "message", "Đăng nhập thành công",
                 "token", accessToken,
                 "accountId", loginResponse.getAccountId(),
-                "username", loginResponse.getUsername()
+                "username", loginResponse.getUsername(),
+                "email", loginResponse.getEmail(),
+                "roles", roles
         ));
     }
 }

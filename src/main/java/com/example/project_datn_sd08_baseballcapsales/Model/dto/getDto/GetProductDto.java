@@ -1,7 +1,5 @@
 package com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto;
 
-import com.example.project_datn_sd08_baseballcapsales.Model.dto.ProductDto.ProductColorDto;
-import com.example.project_datn_sd08_baseballcapsales.Model.entity.Brand;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Product;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -10,9 +8,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.Nationalized;
-
-import java.math.BigDecimal;
-import java.util.List;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -28,8 +23,6 @@ public class GetProductDto {
     @Nationalized
     private String description;
 
-    private BigDecimal price;
-
     @Size(max = 20)
     private String status;
 
@@ -37,19 +30,26 @@ public class GetProductDto {
     @NotNull
     @Nationalized
     private String name;
-    private Integer brandID; // thêm field brandID
 
+    private Integer brandID;
+    private Integer materialID;
+    private String materialName;
     private Integer productID;
 
     public GetProductDto(Product product) {
         this.productID = product.getId();
         this.productName = product.getProductName();
         this.description = product.getDescription();
-        this.price = product.getPrice();
         this.status = product.getStatus();
-        if(product.getBrandID() != null){
-            this.brandID = product.getBrandID().getBrandID(); // ID của brand
+
+        if (product.getBrandID() != null) {
+            this.brandID = product.getBrandID().getBrandID();
             this.name = product.getBrandID().getName();
+        }
+
+        if (product.getMaterialID() != null) {
+            this.materialID = product.getMaterialID().getMaterialID();
+            this.materialName = product.getMaterialID().getMaterialName();
         }
     }
 }

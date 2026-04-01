@@ -1,6 +1,5 @@
 package com.example.project_datn_sd08_baseballcapsales.Model.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -8,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Entity
@@ -17,6 +17,7 @@ import java.util.List;
 @Setter
 @Getter
 public class ProductColor {
+
     @Id
     @Column(name = "productColorID", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -31,6 +32,14 @@ public class ProductColor {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "colorID", nullable = false)
     private Color colorID;
+
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "sizeID", nullable = false)
+    private SizeEntity sizeID;
+
+    @Column(name = "price", precision = 12, scale = 2)
+    private BigDecimal price;
 
     @Column(name = "stockQuantity")
     private Integer stockQuantity;

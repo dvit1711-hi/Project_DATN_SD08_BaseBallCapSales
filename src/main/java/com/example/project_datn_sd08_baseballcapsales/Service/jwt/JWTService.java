@@ -31,12 +31,8 @@ public class JWTService {
     }
 
     public String generateToken(UserDetails userDetails){
-        List<String> roles= userDetails.getAuthorities()
-                .stream().map(GrantedAuthority::getAuthority)
-                .toList();
         return Jwts.builder()
-                .setSubject(userDetails.getUsername())
-                .claim("roles",roles)
+                .setSubject(userDetails.getUsername()) // username lúc này chính là email
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + timeLife))
                 .signWith(getSignKey(), SignatureAlgorithm.HS256)

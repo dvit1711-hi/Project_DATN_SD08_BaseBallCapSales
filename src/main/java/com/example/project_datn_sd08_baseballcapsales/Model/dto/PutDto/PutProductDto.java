@@ -8,8 +8,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.Nationalized;
 
-import java.math.BigDecimal;
-
 @NoArgsConstructor
 @AllArgsConstructor
 @Setter
@@ -24,15 +22,15 @@ public class PutProductDto {
     @Nationalized
     private String description;
 
-    private BigDecimal price;
-
     @Size(max = 20)
     private String status;
 
     @Size(max = 100)
     @NotNull
     @Nationalized
-    private String name;
+    private String brandName;
 
     private Integer brandID;
+
+    private Integer materialID;
 }
