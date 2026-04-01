@@ -14,6 +14,7 @@ import org.hibernate.annotations.Nationalized;
 @Getter
 public class PutProductDto {
 
+
     @Size(max = 200)
     @Nationalized
     private String productName;
@@ -26,7 +27,6 @@ public class PutProductDto {
     private String status;
 
     @Size(max = 100)
-    @NotNull
     @Nationalized
     private String brandName;
 
