@@ -50,4 +50,17 @@ public class PaymentController {
     public ResponseEntity<Payment> confirmPayment(@PathVariable Integer orderId) {
         return ResponseEntity.ok(paymentService.confirmPayment(orderId));
     }
+
+    @PutMapping("/account/{accountId}/orders/{orderId}/cancel")
+    public ResponseEntity<Order> cancelOrderForAccount(
+            @PathVariable Integer accountId,
+            @PathVariable Integer orderId
+    ) {
+        return ResponseEntity.ok(paymentService.cancelOrderForAccount(accountId, orderId));
+    }
+
+    @PutMapping("/orders/{orderId}/cancel")
+    public ResponseEntity<Order> cancelOrderByAdmin(@PathVariable Integer orderId) {
+        return ResponseEntity.ok(paymentService.cancelOrderByAdmin(orderId));
+    }
 }
