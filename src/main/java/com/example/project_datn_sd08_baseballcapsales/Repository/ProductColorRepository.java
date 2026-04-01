@@ -1,14 +1,12 @@
 package com.example.project_datn_sd08_baseballcapsales.Repository;
 
-import com.example.project_datn_sd08_baseballcapsales.Model.entity.Product;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.ProductColor;
-import jakarta.validation.constraints.NotNull;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface ProductColorRepository extends JpaRepository<ProductColor, Integer> {
+
     List<ProductColor> findByProductID_Id(Integer id);
 
     List<ProductColor> findByStockQuantityLessThanEqual(Integer stockQuantity);
@@ -16,5 +14,18 @@ public interface ProductColorRepository extends JpaRepository<ProductColor, Inte
     List<ProductColor> findByProductID_ProductNameContainingIgnoreCaseOrProductID_BrandID_NameContainingIgnoreCase(
             String productName,
             String brandName
+    );
+
+    boolean existsByProductID_IdAndColorID_IdAndSizeID_SizeID(
+            Integer productId,
+            Integer colorId,
+            Integer sizeId
+    );
+
+    boolean existsByProductID_IdAndColorID_IdAndSizeID_SizeIDAndIdNot(
+            Integer productId,
+            Integer colorId,
+            Integer sizeId,
+            Integer id
     );
 }

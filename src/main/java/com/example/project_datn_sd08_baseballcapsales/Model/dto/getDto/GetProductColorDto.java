@@ -1,48 +1,33 @@
 package com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto;
 
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.ProductColor;
-import jakarta.persistence.*;
-import jakarta.validation.constraints.Size;
-import lombok.*;
-import org.hibernate.annotations.Nationalized;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.math.BigDecimal;
 
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
 public class GetProductColorDto {
-
-    @Id
-    private Integer id;
-
-//    @NotNull
-//    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-//    private Product productID;
-//
-//    @NotNull
-//    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-//    private Color colorID;
-
+    private Integer productColorID;
+    private Integer productID;
+    private String productName;
+    private Integer colorID;
+    private String colorName;
+    private Integer sizeID;
+    private String sizeName;
+    private BigDecimal price;
     private Integer stockQuantity;
 
-    @Size(max = 200)
-    @Nationalized
-    private String productName;
-
-    @Size(max = 50)
-    @Nationalized
-    private String colorName;
-
     public GetProductColorDto(ProductColor pc) {
-        this.id = pc.getId();
+        this.productColorID = pc.getId();
+        this.productID = pc.getProductID().getId();
+        this.productName = pc.getProductID().getProductName();
+        this.colorID = pc.getColorID().getId();
+        this.colorName = pc.getColorID().getColorName();
+        this.sizeID = pc.getSizeID() != null ? pc.getSizeID().getSizeID() : null;
+        this.sizeName = pc.getSizeID() != null ? pc.getSizeID().getSizeName() : null;
+        this.price = pc.getPrice();
         this.stockQuantity = pc.getStockQuantity();
-
-        if (pc.getProductID() != null) {
-            this.productName = pc.getProductID().getProductName();
-        }
-
-        if (pc.getColorID() != null) {
-            this.colorName = pc.getColorID().getColorName();
-        }
     }
 }

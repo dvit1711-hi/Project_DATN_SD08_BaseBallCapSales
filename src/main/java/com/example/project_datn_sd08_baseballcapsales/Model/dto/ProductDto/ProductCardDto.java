@@ -17,19 +17,23 @@ public class ProductCardDto {
     private BigDecimal price;
     private String colorName;
     private String colorCode;
+    private String sizeName;
     private String mainImage;
     private String status;
 
     public ProductCardDto(ProductColor pc) {
-
         this.productID = pc.getProductID().getId();
         this.productColorID = pc.getId();
         this.productName = pc.getProductID().getProductName();
-        this.price = pc.getProductID().getPrice();
+        this.price = pc.getPrice();
         this.status = pc.getProductID().getStatus();
 
         this.colorName = pc.getColorID().getColorName();
         this.colorCode = pc.getColorID().getColorCode();
+
+        if (pc.getSizeID() != null) {
+            this.sizeName = pc.getSizeID().getSizeName();
+        }
 
         this.mainImage = pc.getImages()
                 .stream()
