@@ -5,6 +5,7 @@ import com.example.project_datn_sd08_baseballcapsales.Model.dto.PutDto.PutAccoun
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.PutDto.PutStatusDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetAccountDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.PostDto.PostAccountDto;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetAddressDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Account;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Address;
 import com.example.project_datn_sd08_baseballcapsales.Repository.AccountRepository;
@@ -42,6 +43,7 @@ public class AccountController {
         return accountService.getAccountById(id);
     }
 
+
     @GetMapping("/getById/{id}")
     public ResponseEntity<?> getById(@PathVariable int id) {
 
@@ -49,8 +51,8 @@ public class AccountController {
         Address address = addressRepository.findByAccount_Id(id);
 
         Map<String, Object> result = new HashMap<>();
-        result.put("account", acc);
-        result.put("address", address);
+        result.put("account", acc != null ? new GetAccountDto(acc) : null);
+        result.put("address", address != null ? new GetAddressDto(address) : null);
 
         return ResponseEntity.ok(result);
     }

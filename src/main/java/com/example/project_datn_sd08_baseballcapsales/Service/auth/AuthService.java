@@ -13,8 +13,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.stream.Stream;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class AuthService {
@@ -29,47 +29,36 @@ public class AuthService {
         this.accountRepository = accountRepository;
     }
 
-    public Authentication getAuthentication(){
-        return SecurityContextHolder.getContext().getAuthentication();
-    }
-    public String getUsername() {
-        return this.getAuthentication().getName();
-    }
-
-    public List<String> getRoles() {
-        return this.getAuthentication().getAuthorities().stream()
-                .map(au -> au.getAuthority().substring(5))
-                .toList();
-    }
-
-    public boolean isAuthenticated() {
-        String username = this.getUsername();
-        return (username != null && !username.equals("anonymousUser"));
-    }
-
-    public boolean hasAnyRole(String... roles) {
-        var grantedRoles = this.getRoles();
-        return Stream.of(roles).anyMatch(grantedRoles::contains);
-    }
-
     public LoginResponse login(LoginRequest loginRequest){
+
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        loginRequest.getUsername(),
+                        loginRequest.getEmail(),     // login bằng email
                         loginRequest.getPassword()
                 )
         );
-        UserDetails userDetails= (UserDetails) authentication.getPrincipal();
 
-        String accessToken= jwtService.generateToken(userDetails);
-        String refreshToken= jwtService.generateRefreshToken(userDetails);
-        Account account= accountRepository.findByUsername(userDetails.getUsername()).orElseThrow(
-                () -> new UsernameNotFoundException("User not found")
-        );
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+
+        // Tạo token
+        String accessToken = jwtService.generateToken(userDetails);
+
+        // Lấy account theo email
+        Account account = accountRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new UsernameNotFoundException("Email không tồn tại"));
+
+        // Lấy role từ AccountRole
+        Set<String> roles = account.getAccountRoles()
+                .stream()
+                .map(ar -> ar.getRole().getRoleName())
+                .collect(Collectors.toSet());
+
         return new LoginResponse(
                 accessToken,
                 account.getId(),
-                account.getUsername()
+                account.getUsername(),
+                account.getEmail(),
+                roles
         );
     }
 }

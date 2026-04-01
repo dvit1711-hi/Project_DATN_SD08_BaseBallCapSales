@@ -101,7 +101,6 @@ public class AccountService {
 
         // UPDATE ACCOUNT
         acc.setUsername(dto.getUsername());
-        acc.setEmail(dto.getEmail());
         acc.setPhoneNumber(dto.getPhoneNumber());
         acc.setImages(dto.getImages());
         accountRepository.save(acc);
@@ -135,9 +134,9 @@ public class AccountService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Bạn chưa đăng nhập.");
         }
 
-        String username = authentication.getName();
+        String email = authentication.getName();
 
-        Account account = accountRepository.findByUsername(username)
+        Account account = accountRepository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy tài khoản."));
 
         if (request.getCurrentPassword() == null || request.getCurrentPassword().isBlank()) {
@@ -150,6 +149,10 @@ public class AccountService {
 
         if (!passwordEncoder.matches(request.getCurrentPassword(), account.getPassword())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mật khẩu hiện tại không đúng.");
+        }
+
+        if (request.getCurrentPassword().equals(request.getNewPassword())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mật khẩu mới không được trùng mật khẩu cũ.");
         }
 
 //        if (request.getNewPassword().length() < 8) {
@@ -167,10 +170,6 @@ public class AccountService {
 //        if (!request.getNewPassword().matches(".*\\d.*")) {
 //            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mật khẩu mới phải có ít nhất 1 chữ số.");
 //        }
-
-        if (request.getCurrentPassword().equals(request.getNewPassword())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mật khẩu mới không được trùng mật khẩu cũ.");
-        }
 
         account.setPassword(passwordEncoder.encode(request.getNewPassword()));
         accountRepository.save(account);
