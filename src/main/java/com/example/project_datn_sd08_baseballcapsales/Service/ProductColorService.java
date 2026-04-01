@@ -49,7 +49,7 @@ public class ProductColorService {
 
         for (ProductColor pc : productColors) {
             ColorDetailDto colorDto = new ColorDetailDto();
-
+            colorDto.setColorID(pc.getColorID().getId());
             colorDto.setProductColorID(pc.getId());
             colorDto.setColorName(pc.getColorID().getColorName());
             colorDto.setColorCode(pc.getColorID().getColorCode());

@@ -10,6 +10,7 @@ import java.util.List;
 @Setter
 public class ColorDetailDto {
     private Integer productColorID;
+    private Integer colorID;
     private String colorName;
     private String colorCode;
     private Integer stockQuantity;
