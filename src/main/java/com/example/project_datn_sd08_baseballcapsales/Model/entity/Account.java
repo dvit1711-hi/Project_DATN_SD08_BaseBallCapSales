@@ -38,8 +38,9 @@ public class Account {
     private String password;
 
     @Size(max = 100)
+    @NotNull
     @Nationalized
-    @Column(name = "email", length = 100)
+    @Column(name = "email", nullable = false, unique = true, length = 100)
     private String email;
 
     @Size(max = 20)
@@ -61,5 +62,4 @@ public class Account {
 
     @OneToMany(mappedBy = "account", fetch = FetchType.LAZY)
     private Set<AccountRole> accountRoles;
-
 }
