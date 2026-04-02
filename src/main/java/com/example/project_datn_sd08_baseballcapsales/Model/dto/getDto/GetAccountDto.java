@@ -1,66 +1,46 @@
 package com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto;
 
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Account;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.ColumnDefault;
-import org.hibernate.annotations.Nationalized;
 
 import java.time.Instant;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class GetAccountDto {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+
     private Integer id;
-
-    @Size(max = 50)
-    @NotNull
-    @Nationalized
     private String username;
-
-    @Size(max = 255)
-    @NotNull
-    @Nationalized
-    private String password;
-
-    @Size(max = 100)
-    @Nationalized
     private String email;
-
-    @Size(max = 20)
-    @Nationalized
     private String phoneNumber;
-
-    @Size(max = 255)
-    @Nationalized
     private String images;
-
-    @ColumnDefault("getdate()")
     private Instant createDate;
-
     private String statusName;
+    private List<String> roles;
 
     public GetAccountDto(Account account) {
         this.id = account.getId();
         this.username = account.getUsername();
-        this.password = account.getPassword();
         this.email = account.getEmail();
         this.phoneNumber = account.getPhoneNumber();
         this.images = account.getImages();
         this.createDate = account.getCreateDate();
-        if(account.getStatus() != null){
+
+        if (account.getStatus() != null) {
             this.statusName = account.getStatus().getStatusName();
+        }
+
+        if (account.getAccountRoles() != null) {
+            this.roles = account.getAccountRoles().stream()
+                    .map(accountRole -> accountRole.getRole().getRoleName())
+                    .collect(Collectors.toList());
         }
     }
 }
