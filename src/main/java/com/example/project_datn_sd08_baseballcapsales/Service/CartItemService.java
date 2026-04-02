@@ -9,9 +9,11 @@ import com.example.project_datn_sd08_baseballcapsales.Repository.CartItemReposit
 import com.example.project_datn_sd08_baseballcapsales.Repository.CartRepository;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.ProductColor;
 import com.example.project_datn_sd08_baseballcapsales.Repository.ProductColorRepository;
+import com.example.project_datn_sd08_baseballcapsales.Service.ProductDiscountService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,10 +29,13 @@ public class CartItemService {
     @Autowired
     private ProductColorRepository productColorRepository;
 
+    @Autowired
+    private ProductDiscountService productDiscountService;
+
     public List<GetCartItemDto> getAll() {
         return cartItemRepository.findAll()
                 .stream()
-                .map(GetCartItemDto::new)
+                .map(this::toDto)
                 .toList();
     }
 
@@ -164,7 +169,16 @@ public class CartItemService {
         }
         return cartItemRepository.findByCartID_Id(cartId)
                 .stream()
-                .map(GetCartItemDto::new)
+                .map(this::toDto)
                 .toList();
+    }
+
+    private GetCartItemDto toDto(CartItem item) {
+        GetCartItemDto dto = new GetCartItemDto(item);
+        if (item.getProductColorID() != null) {
+            BigDecimal discountedPrice = productDiscountService.getDiscountedPrice(item.getProductColorID());
+            dto.setPrice(discountedPrice == null ? 0L : discountedPrice.longValue());
+        }
+        return dto;
     }
 }

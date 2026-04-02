@@ -45,6 +45,9 @@ public class PaymentService {
     @Autowired
     private DiscountCouponRepository discountCouponRepository;
 
+    @Autowired
+    private ProductDiscountService productDiscountService;
+
     //    tien mat
     @Transactional
     public Order checkoutCOD(Integer accountId) {
@@ -124,7 +127,7 @@ public class PaymentService {
             productColor.setStockQuantity(currentStock - quantity);
             productColorRepository.save(productColor);
 
-            BigDecimal price = item.getProductColorID().getPrice();
+            BigDecimal price = productDiscountService.getDiscountedPrice(productColor);
             subTotal = subTotal.add(
                     price.multiply(BigDecimal.valueOf(item.getQuantity()))
             );
