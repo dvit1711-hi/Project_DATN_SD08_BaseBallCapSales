@@ -10,6 +10,6 @@ import org.hibernate.annotations.Nationalized;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PostColorDto {
-    private Integer colorId;       // id của màu (từ Colors table)
-    private Integer stockQuantity; // số lượng
+    private String colorName;
+    private String colorCode;
 }

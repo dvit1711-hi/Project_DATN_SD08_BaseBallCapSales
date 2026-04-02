@@ -1,6 +1,5 @@
 package com.example.project_datn_sd08_baseballcapsales.Controller;
 
-import com.example.project_datn_sd08_baseballcapsales.Model.dto.PostDto.PostColorDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.PostDto.PostProductColorDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.PutDto.PutProductColorDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetProductColorDto;

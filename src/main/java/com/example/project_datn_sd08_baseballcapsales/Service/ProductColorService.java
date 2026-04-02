@@ -1,6 +1,5 @@
 package com.example.project_datn_sd08_baseballcapsales.Service;
 
-import com.example.project_datn_sd08_baseballcapsales.Model.dto.PostDto.PostColorDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.PostDto.PostProductColorDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.ProductDto.ColorDetailDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.ProductDto.ProductCardDto;
