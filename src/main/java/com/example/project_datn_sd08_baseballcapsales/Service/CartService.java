@@ -6,6 +6,7 @@ import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetCartDt
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Account;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Cart;
 import com.example.project_datn_sd08_baseballcapsales.Repository.AccountRepository;
+import com.example.project_datn_sd08_baseballcapsales.Repository.CartItemRepository;
 import com.example.project_datn_sd08_baseballcapsales.Repository.CartRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,9 @@ public class CartService {
     @Autowired
     private AccountRepository accountRepository;
 
+    @Autowired
+    private CartItemRepository cartItemRepository;
+
     public List<GetCartDto> getAll() {
         return cartRepository.findAll()
                 .stream()
@@ -29,6 +33,9 @@ public class CartService {
     }
 
     public Cart create(PostCartDto dto) {
+        if (dto == null || dto.getAccountID() == null) {
+            throw new RuntimeException("Thiếu accountID để tạo giỏ hàng");
+        }
 
         // 1. tìm cart theo account
         Cart existing = cartRepository.findByAccountID_Id(dto.getAccountID())
@@ -48,6 +55,7 @@ public class CartService {
 
         return cartRepository.save(cart);
     }
+
     public Cart update(Integer id, PutCartDto dto) {
         Cart cart = cartRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy giỏ hàng"));
@@ -65,6 +73,25 @@ public class CartService {
             throw new RuntimeException("Không tìm thấy giỏ hàng");
         }
         cartRepository.deleteById(id);
+        return true;
+    }
+
+    /**
+     * Lấy giỏ hàng của một tài khoản theo accountId
+     */
+    public Cart getCartByAccountId(Integer accountId) {
+        return cartRepository.findByAccountID_Id(accountId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy giỏ hàng cho tài khoản này"));
+    }
+
+    /**
+     * Xóa tất cả items trong giỏ hàng
+     */
+    public boolean clearCart(Integer cartId) {
+        if (!cartRepository.existsById(cartId)) {
+            throw new RuntimeException("Không tìm thấy giỏ hàng");
+        }
+        cartItemRepository.deleteAll(cartItemRepository.findByCartID_Id(cartId));
         return true;
     }
 }

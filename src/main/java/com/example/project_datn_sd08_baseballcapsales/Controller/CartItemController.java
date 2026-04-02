@@ -3,7 +3,6 @@ package com.example.project_datn_sd08_baseballcapsales.Controller;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.PostDto.PostCartItemDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.PutDto.PutCartItemDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetCartItemDto;
-import com.example.project_datn_sd08_baseballcapsales.Model.entity.CartItem;
 import com.example.project_datn_sd08_baseballcapsales.Service.CartItemService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,19 +24,29 @@ public class CartItemController {
     }
 
     @PostMapping
-    public ResponseEntity<CartItem> create(@Valid @RequestBody PostCartItemDto dto) {
-        return ResponseEntity.ok(cartItemService.create(dto));
+    public ResponseEntity<GetCartItemDto> create(@Valid @RequestBody PostCartItemDto dto) {
+        return ResponseEntity.ok(new GetCartItemDto(cartItemService.create(dto)));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<CartItem> update(@PathVariable Integer id,
-                                           @Valid @RequestBody PutCartItemDto dto) {
-        return ResponseEntity.ok(cartItemService.update(id, dto));
+    public ResponseEntity<GetCartItemDto> update(@PathVariable Integer id,
+                                                 @Valid @RequestBody PutCartItemDto dto) {
+        return ResponseEntity.ok(new GetCartItemDto(cartItemService.update(id, dto)));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable Integer id) {
         cartItemService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Lấy tất cả items trong một giỏ hàng
+     * GET /api/cart-items/cart/{cartId}
+     */
+    @GetMapping("/cart/{cartId}")
+    public ResponseEntity<List<GetCartItemDto>> getCartItems(@PathVariable Integer cartId) {
+        List<GetCartItemDto> items = cartItemService.getCartItems(cartId);
+        return ResponseEntity.ok(items);
     }
 }

@@ -5,7 +5,6 @@ import com.example.project_datn_sd08_baseballcapsales.Model.dto.PutDto.PutCartIt
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetCartItemDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Cart;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.CartItem;
-import com.example.project_datn_sd08_baseballcapsales.Model.entity.Product;
 import com.example.project_datn_sd08_baseballcapsales.Repository.CartItemRepository;
 import com.example.project_datn_sd08_baseballcapsales.Repository.CartRepository;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.ProductColor;
@@ -36,16 +35,26 @@ public class CartItemService {
     }
 
     public CartItem create(PostCartItemDto dto) {
+        if (dto == null || dto.getCartID() == null || dto.getProductColorID() == null) {
+            throw new RuntimeException("Thiếu cartID hoặc productColorID");
+        }
+
         int addQuantity = dto.getQuantity() == null ? 1 : dto.getQuantity();
         if (addQuantity <= 0) {
             throw new RuntimeException("Quantity must be greater than 0");
         }
 
         Cart cart = cartRepository.findById(dto.getCartID())
-                .orElseThrow(() -> new RuntimeException("Cart not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy giỏ hàng"));
 
         ProductColor productColor = productColorRepository.findById(dto.getProductColorID())
-                .orElseThrow(() -> new RuntimeException("ProductColor not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm màu"));
+
+        // Kiểm tra tồn kho
+        if (productColor.getStockQuantity() == null || productColor.getStockQuantity() < addQuantity) {
+            throw new RuntimeException("Số lượng tồn kho không đủ. Tồn kho hiện tại: "
+                    + (productColor.getStockQuantity() != null ? productColor.getStockQuantity() : 0));
+        }
 
         List<CartItem> duplicatedItems = cartItemRepository
                 .findByCartID_IdAndProductColorID_Id(cart.getId(), productColor.getId());
@@ -59,7 +68,15 @@ public class CartItemService {
                 currentQty += duplicate.getQuantity() == null ? 0 : duplicate.getQuantity();
             }
 
-            primaryItem.setQuantity(currentQty + addQuantity);
+            int newTotal = currentQty + addQuantity;
+
+            // Kiểm tra tổng tồn kho
+            if (productColor.getStockQuantity() < newTotal) {
+                throw new RuntimeException("Tổng số lượng vượt quá tồn kho. Tồn kho: "
+                        + productColor.getStockQuantity() + ", yêu cầu: " + newTotal);
+            }
+
+            primaryItem.setQuantity(newTotal);
             CartItem saved = cartItemRepository.save(primaryItem);
 
             if (duplicatedItems.size() > 1) {
@@ -80,17 +97,23 @@ public class CartItemService {
     public CartItem update(Integer id, PutCartItemDto dto) {
         int nextQuantity = dto.getQuantity() == null ? 1 : dto.getQuantity();
         if (nextQuantity <= 0) {
-            throw new RuntimeException("Quantity must be greater than 0");
+            throw new RuntimeException("Số lượng phải lớn hơn 0");
         }
 
         CartItem item = cartItemRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Cart item not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm trong giỏ hàng"));
 
         Cart cart = cartRepository.findById(dto.getCartID())
-                .orElseThrow(() -> new RuntimeException("Cart not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy giỏ hàng"));
 
         ProductColor productColor = productColorRepository.findById(dto.getProductColorID())
-                .orElseThrow(() -> new RuntimeException("ProductColor not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm màu"));
+
+        // Kiểm tra tồn kho
+        if (productColor.getStockQuantity() == null || productColor.getStockQuantity() < nextQuantity) {
+            throw new RuntimeException("Số lượng tồn kho không đủ. Tồn kho hiện tại: "
+                    + (productColor.getStockQuantity() != null ? productColor.getStockQuantity() : 0));
+        }
 
         List<CartItem> duplicatedItems = new ArrayList<>(
                 cartItemRepository.findByCartID_IdAndProductColorID_Id(cart.getId(), productColor.getId())
@@ -102,6 +125,12 @@ public class CartItemService {
             if (!duplicated.getId().equals(item.getId())) {
                 mergedQuantity += duplicated.getQuantity() == null ? 0 : duplicated.getQuantity();
             }
+        }
+
+        // Kiểm tra tồn kho cho tổng sau merge
+        if (productColor.getStockQuantity() < mergedQuantity) {
+            throw new RuntimeException("Tổng số lượng vượt quá tồn kho. Tồn kho: "
+                    + productColor.getStockQuantity() + ", yêu cầu: " + mergedQuantity);
         }
 
         item.setCartID(cart);
@@ -124,5 +153,18 @@ public class CartItemService {
         }
         cartItemRepository.deleteById(id);
         return true;
+    }
+
+    /**
+     * Lấy tất cả items trong một giỏ hàng
+     */
+    public List<GetCartItemDto> getCartItems(Integer cartId) {
+        if (!cartRepository.existsById(cartId)) {
+            throw new RuntimeException("Không tìm thấy giỏ hàng");
+        }
+        return cartItemRepository.findByCartID_Id(cartId)
+                .stream()
+                .map(GetCartItemDto::new)
+                .toList();
     }
 }
