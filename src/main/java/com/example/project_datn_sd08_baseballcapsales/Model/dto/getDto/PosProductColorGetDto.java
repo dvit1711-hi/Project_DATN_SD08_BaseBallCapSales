@@ -15,4 +15,6 @@ public class PosProductColorGetDto {
     private BigDecimal price;
     private Integer stockQuantity;
     private String displayName;
+
+    private String imageUrl;
 }

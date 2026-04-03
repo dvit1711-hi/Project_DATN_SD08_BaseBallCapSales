@@ -367,17 +367,28 @@ public class PosServiceImpl implements PosService {
         PosProductColorGetDto dto = new PosProductColorGetDto();
         dto.setProductColorId(pc.getId());
         dto.setProductName(pc.getProductID().getProductName());
-        dto.setColorName(pc.getColorID().getColorName());
-        dto.setSizeName(pc.getSizeID().getSizeName());
+        dto.setColorName(pc.getColorID() != null ? pc.getColorID().getColorName() : null);
+        dto.setSizeName(pc.getSizeID() != null ? pc.getSizeID().getSizeName() : null);
         dto.setPrice(pc.getPrice());
         dto.setStockQuantity(pc.getStockQuantity());
+
         dto.setDisplayName(
                 pc.getProductID().getProductName()
-                        + " - " + pc.getColorID().getColorName()
-                        + " - " + pc.getSizeID().getSizeName()
+                        + " - " + (pc.getColorID() != null ? pc.getColorID().getColorName() : "-")
+                        + " - " + (pc.getSizeID() != null ? pc.getSizeID().getSizeName() : "-")
                         + " - " + formatMoney(pc.getPrice())
                         + " - Tồn: " + pc.getStockQuantity()
         );
+
+        if (pc.getImages() != null && !pc.getImages().isEmpty()) {
+            Image firstImage = pc.getImages().get(0);
+
+            // đổi getImageUrl() thành tên field thật trong entity Image của bạn
+            dto.setImageUrl(firstImage.getImageUrl());
+        } else {
+            dto.setImageUrl(null);
+        }
+
         return dto;
     }
 
