@@ -38,7 +38,7 @@ public class ProductColor {
     @JoinColumn(name = "sizeID", nullable = false)
     private SizeEntity sizeID;
 
-    @Column(name = "price", precision = 12, scale = 2)
+    @Column(name = "price", nullable = false, precision = 12, scale = 2)
     private BigDecimal price;
 
     @Column(name = "stockQuantity")

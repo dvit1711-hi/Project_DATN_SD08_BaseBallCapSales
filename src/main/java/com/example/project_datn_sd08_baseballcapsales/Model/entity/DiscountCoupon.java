@@ -18,6 +18,7 @@ import java.time.LocalDate;
 @Setter
 @Getter
 public class DiscountCoupon {
+
     @Id
     @Column(name = "couponID", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -35,7 +36,7 @@ public class DiscountCoupon {
 
     @Size(max = 20)
     @Column(name = "discountType", length = 20)
-    private String discountType; // percent or fixed
+    private String discountType; // percent hoặc fixed
 
     @Column(name = "discountValue", precision = 10, scale = 2)
     private BigDecimal discountValue;

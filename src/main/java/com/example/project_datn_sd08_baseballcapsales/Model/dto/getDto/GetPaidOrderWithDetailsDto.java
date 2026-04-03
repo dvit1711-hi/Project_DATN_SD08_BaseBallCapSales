@@ -9,6 +9,8 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,10 +19,15 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class GetPaidOrderWithDetailsDto {
+
+    private static final ZoneId VN_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+    private static final DateTimeFormatter VN_FORMAT =
+            DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+
     private Integer orderId;
     private Integer accountId;
     private String accountUsername;
-    private Instant orderDate;
+    private String orderDate;
     private String orderStatus;
     private String shippingAddress;
     private String couponCode;
@@ -33,7 +40,9 @@ public class GetPaidOrderWithDetailsDto {
         this.orderId = order.getId();
         this.accountId = order.getAccountID().getId();
         this.accountUsername = order.getAccountID().getUsername();
-        this.orderDate = order.getOrderDate();
+        this.orderDate = order.getOrderDate() != null
+                ? order.getOrderDate().atZone(VN_ZONE).format(VN_FORMAT)
+                : null;
         this.orderStatus = order.getStatus();
         this.shippingAddress = order.getShippingAddress();
         this.couponCode = order.getCouponID() != null ? order.getCouponID().getCouponCode() : null;

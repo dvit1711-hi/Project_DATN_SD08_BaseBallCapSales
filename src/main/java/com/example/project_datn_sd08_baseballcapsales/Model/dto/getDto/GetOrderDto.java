@@ -1,15 +1,14 @@
 package com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto;
 
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Order;
-import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
-import lombok.*;
-import org.hibernate.annotations.ColumnDefault;
-import org.hibernate.annotations.Nationalized;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.math.BigDecimal;
-import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 
 @Getter
 @Setter
@@ -17,43 +16,33 @@ import java.time.Instant;
 @AllArgsConstructor
 public class GetOrderDto {
 
-    @Id
+    private static final ZoneId VN_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+    private static final DateTimeFormatter VN_FORMAT =
+            DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+
     private Integer id;
-//    @NotNull
-//    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-//    private Account accountID;
-//
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    private DiscountCoupon couponID;
-
-    @ColumnDefault("getdate()")
-    private Instant orderDate;
-
-    @Size(max = 50)
-    @Nationalized
+    private String orderDate;
     private String status;
-
     private BigDecimal totalAmount;
-
-    @Size(max = 50)
-    @NotNull
-    @Nationalized
     private String accountCode;
-
-    @Size(max = 50)
-    @Nationalized
     private String couponCode;
 
     public GetOrderDto(Order order) {
         this.id = order.getId();
-        this.orderDate = order.getOrderDate();
+
+        this.orderDate = order.getOrderDate() != null
+                ? order.getOrderDate().atZone(VN_ZONE).format(VN_FORMAT)
+                : null;
+
         this.status = order.getStatus();
         this.totalAmount = order.getTotalAmount();
-        if (order.getAccountID() != null && order.getAccountID().getEmail() != null) {
-            this.accountCode = order.getAccountID().getEmail();
-        }
-        if (order.getCouponID() != null && order.getCouponID().getCouponCode() != null) {
-            this.couponCode = order.getCouponID().getCouponCode();
-        }
+
+        this.accountCode = order.getAccountID() != null
+                ? order.getAccountID().getEmail()
+                : null;
+
+        this.couponCode = order.getCouponID() != null
+                ? order.getCouponID().getCouponCode()
+                : null;
     }
 }

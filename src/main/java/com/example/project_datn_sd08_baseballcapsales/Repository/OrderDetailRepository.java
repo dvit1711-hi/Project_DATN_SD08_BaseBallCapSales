@@ -5,9 +5,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface OrderDetailRepository extends JpaRepository<OrderDetail, Integer> {
     List<OrderDetail> findByOrderID_Id(Integer orderId);
+
+    Optional<OrderDetail> findByOrderID_IdAndProductColorID_Id(Integer orderId, Integer productColorId);
 
     @Query("select od.productColorID.productID.id, sum(od.quantity)\n" +
             "    from OrderDetail od\n" +
