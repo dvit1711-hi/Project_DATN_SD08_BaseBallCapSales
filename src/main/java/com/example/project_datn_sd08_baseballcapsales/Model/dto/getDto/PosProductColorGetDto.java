@@ -12,9 +12,19 @@ public class PosProductColorGetDto {
     private String productName;
     private String colorName;
     private String sizeName;
+
+    // Giữ để tương thích frontend cũ: price = finalPrice
     private BigDecimal price;
+
+    private BigDecimal originalPrice;
+    private BigDecimal finalPrice;
+    private BigDecimal discountValue;
+    private Integer discountPercent;
+    private Boolean discounted;
+    private String discountType;
+    private String discountLabel;
+
     private Integer stockQuantity;
     private String displayName;
-
     private String imageUrl;
 }

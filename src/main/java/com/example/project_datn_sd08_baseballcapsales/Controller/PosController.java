@@ -1,6 +1,7 @@
 package com.example.project_datn_sd08_baseballcapsales.Controller;
 
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.PostDto.*;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.PutDto.PutOfflineOrderInfoDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.PutDto.PutOfflineOrderItemDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.*;
 import com.example.project_datn_sd08_baseballcapsales.Service.PosService;
@@ -21,19 +22,19 @@ public class PosController {
 
     private final PosService posService;
 
-    private String getCurrentUsername(Authentication authentication) {
+    private String getCurrentEmail(Authentication authentication) {
         if (authentication == null
                 || !authentication.isAuthenticated()
                 || authentication instanceof AnonymousAuthenticationToken) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Bạn chưa đăng nhập");
         }
 
-        String username = authentication.getName();
-        if (username == null || username.isBlank() || "anonymousUser".equalsIgnoreCase(username)) {
+        String email = authentication.getName();
+        if (email == null || email.isBlank() || "anonymousUser".equalsIgnoreCase(email)) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Không xác định được người dùng đăng nhập");
         }
 
-        return username;
+        return email;
     }
 
     @GetMapping("/products")
@@ -50,12 +51,17 @@ public class PosController {
         return ResponseEntity.ok(posService.searchCustomers(keyword));
     }
 
+    @GetMapping("/orders/pending")
+    public ResponseEntity<List<PosOrderGetDto>> getPendingOrders(Authentication authentication) {
+        return ResponseEntity.ok(posService.getPendingOrders(getCurrentEmail(authentication)));
+    }
+
     @PostMapping("/orders")
     public ResponseEntity<PosOrderGetDto> createOfflineOrder(
             @RequestBody PostOfflineOrderDto dto,
             Authentication authentication
     ) {
-        return ResponseEntity.ok(posService.createOfflineOrder(dto, getCurrentUsername(authentication)));
+        return ResponseEntity.ok(posService.createOfflineOrder(dto, getCurrentEmail(authentication)));
     }
 
     @GetMapping("/orders/{orderId}")
@@ -63,12 +69,21 @@ public class PosController {
         return ResponseEntity.ok(posService.getOrder(orderId));
     }
 
+    @DeleteMapping("/orders/{orderId}")
+    public ResponseEntity<Void> cancelPendingOrder(
+            @PathVariable Integer orderId,
+            Authentication authentication
+    ) {
+        posService.cancelPendingOrder(orderId, getCurrentEmail(authentication));
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/orders/{orderId}/items")
     public ResponseEntity<PosOrderGetDto> addItem(
             @PathVariable Integer orderId,
             @RequestBody PostOfflineOrderItemDto dto
     ) {
-            return ResponseEntity.ok(posService.addItem(orderId, dto));
+        return ResponseEntity.ok(posService.addItem(orderId, dto));
     }
 
     @PutMapping("/orders/{orderId}/items/{orderDetailId}")
@@ -78,6 +93,14 @@ public class PosController {
             @RequestBody PutOfflineOrderItemDto dto
     ) {
         return ResponseEntity.ok(posService.updateItem(orderId, orderDetailId, dto));
+    }
+
+    @PutMapping("/orders/{orderId}")
+    public ResponseEntity<PosOrderGetDto> updateOrderInfo(
+            @PathVariable Integer orderId,
+            @RequestBody PutOfflineOrderInfoDto dto
+    ) {
+        return ResponseEntity.ok(posService.updateOrderInfo(orderId, dto));
     }
 
     @DeleteMapping("/orders/{orderId}/items/{orderDetailId}")

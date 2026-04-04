@@ -7,11 +7,24 @@ import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
 public interface OrderRepository extends JpaRepository<Order, Integer> {
     List<Order> findByAccountID_Id(Integer accountId);
-    
-    List<Order> findByAccountID_IdAndStatus(Integer accountId, String status);
+
+    long countByEmployeeID_IdAndOrderTypeIgnoreCaseAndStatusIgnoreCase(
+            Integer employeeId,
+            String orderType,
+            String status
+    );
+
+    List<Order> findByEmployeeID_IdAndOrderTypeIgnoreCaseAndStatusIgnoreCaseOrderByOrderDateDesc(
+            Integer employeeId,
+            String orderType,
+            String status
+    );
+
+    Optional<Order> findByIdAndEmployeeID_Id(Integer orderId, Integer employeeId);
     
     @Query("SELECT o FROM Order o WHERE o.accountID.id = :accountId AND EXISTS (SELECT p FROM Payment p WHERE p.orderID = o AND p.status = 'PAID')")
     List<Order> findPaidOrdersByAccountId(@Param("accountId") Integer accountId);

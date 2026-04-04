@@ -1,6 +1,7 @@
 package com.example.project_datn_sd08_baseballcapsales.Service;
 
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.PostDto.*;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.PutDto.PutOfflineOrderInfoDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.PutDto.PutOfflineOrderItemDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.*;
 
@@ -12,9 +13,13 @@ public interface PosService {
 
     List<PosCustomerGetDto> searchCustomers(String keyword);
 
-    PosOrderGetDto createOfflineOrder(PostOfflineOrderDto dto, String username);
+    List<PosOrderGetDto> getPendingOrders(String email);
+
+    PosOrderGetDto createOfflineOrder(PostOfflineOrderDto dto, String email);
 
     PosOrderGetDto getOrder(Integer orderId);
+
+    PosOrderGetDto updateOrderInfo(Integer orderId, PutOfflineOrderInfoDto dto);
 
     PosOrderGetDto addItem(Integer orderId, PostOfflineOrderItemDto dto);
 
@@ -25,4 +30,6 @@ public interface PosService {
     PosOrderGetDto applyCoupon(Integer orderId, PostApplyCouponDto dto);
 
     PosOrderGetDto checkout(Integer orderId, PostCheckoutOrderDto dto);
+
+    void cancelPendingOrder(Integer orderId, String email);
 }
