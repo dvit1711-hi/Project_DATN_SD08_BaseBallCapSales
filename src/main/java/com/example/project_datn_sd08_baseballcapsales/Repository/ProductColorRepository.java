@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ProductColorRepository extends JpaRepository<ProductColor, Integer> {
 
@@ -47,4 +48,30 @@ public interface ProductColorRepository extends JpaRepository<ProductColor, Inte
         order by p.productName asc, c.colorName asc, s.sizeName asc
     """)
     List<ProductColor> searchForPos(@Param("keyword") String keyword);
+
+    List<ProductColor> findByStatus(String status);
+
+    Optional<ProductColor> findByIdAndStatus(Integer id, String status);
+
+    List<ProductColor> findByProductID_IdAndStatus(Integer productId, String status);
+
+    List<ProductColor> findByColorID_Id(Integer colorId);
+
+    List<ProductColor> findByColorID_IdAndStatus(Integer colorId, String status);
+
+    List<ProductColor> findBySizeID_SizeID(Integer sizeId);
+
+    List<ProductColor> findBySizeID_SizeIDAndStatus(Integer sizeId, String status);
+
+    boolean existsByColorID_Id(Integer colorId);
+
+    boolean existsBySizeID_SizeID(Integer sizeId);
+
+    boolean existsByProductID_Id(Integer productId);
+
+    List<ProductColor> findByProductID_IdAndStatusAndStockQuantityGreaterThan(
+            Integer productId,
+            String status,
+            Integer stockQuantity
+    );
 }

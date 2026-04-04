@@ -24,4 +24,8 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, Intege
             "        group by od.productColorID.productID.brandID.name\n" +
             "        order by sum(od.quantity) desc")
     List<Object[]> topBrandsByQuantity();
+
+    boolean existsByProductColorID_Id(Integer productColorId);
+
+    boolean existsByOrderID_Id(Integer orderId);
 }

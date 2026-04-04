@@ -8,4 +8,10 @@ import java.util.List;
 public interface CartItemRepository extends JpaRepository<CartItem, Integer> {
     List<CartItem> findByCartID_Id(Integer cartId);
     List<CartItem> findByCartID_IdAndProductColorID_Id(Integer cartId, Integer productColorId);
+
+    boolean existsByProductColorID_Id(Integer productColorId);
+
+    boolean existsByCartID_Id(Integer cartId);
+
+    void deleteByProductColorID_Id(Integer productColorId);
 }

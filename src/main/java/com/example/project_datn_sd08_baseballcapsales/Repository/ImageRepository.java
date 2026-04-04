@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 
 
 public interface ImageRepository extends JpaRepository<Image, Integer> {
@@ -16,4 +17,8 @@ public interface ImageRepository extends JpaRepository<Image, Integer> {
     boolean existsByProductColorID_Id(Integer productColorId);
 
     long deleteByProductColorID_Id(Integer productColorId);
+
+    Optional<Image> findByProductColorID_IdAndIsMainTrue(Integer productColorId);
+
+
 }
