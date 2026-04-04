@@ -1,6 +1,7 @@
 package com.example.project_datn_sd08_baseballcapsales.Service.Impl;
 
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.PostDto.*;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.PutDto.PutOfflineOrderInfoDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.PutDto.PutOfflineOrderItemDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.*;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.*;
@@ -12,7 +13,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -26,6 +29,7 @@ public class PosServiceImpl implements PosService {
     private final DiscountCouponRepository discountCouponRepository;
     private final PaymentRepository paymentRepository;
     private final AccountRepository accountRepository;
+    private final ProductDiscountRepository productDiscountRepository;
 
     @Override
     public List<PosProductColorGetDto> searchProducts(String keyword) {
@@ -44,19 +48,35 @@ public class PosServiceImpl implements PosService {
     }
 
     @Override
+    public List<PosOrderGetDto> getPendingOrders(String email) {
+        Account employee = getCurrentEmployee(email);
+
+        return orderRepository
+                .findByEmployeeID_IdAndOrderTypeIgnoreCaseAndStatusIgnoreCaseOrderByOrderDateDesc(
+                        employee.getId(), "OFFLINE", "Pending"
+                )
+                .stream()
+                .map(this::mapOrderDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     @Transactional
     public PosOrderGetDto createOfflineOrder(PostOfflineOrderDto dto, String email) {
-        Account employee = accountRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên đăng nhập"));
+        Account employee = getCurrentEmployee(email);
+
+        long pendingCount = orderRepository.countByEmployeeID_IdAndOrderTypeIgnoreCaseAndStatusIgnoreCase(
+                employee.getId(), "OFFLINE", "Pending"
+        );
+
+        if (pendingCount >= 10) {
+            throw new RuntimeException("Mỗi nhân viên chỉ được giữ tối đa 10 đơn hàng chờ");
+        }
 
         Account customer = null;
         if (dto.getAccountId() != null) {
             customer = accountRepository.findById(dto.getAccountId())
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng"));
-        }
-
-        if (customer == null && !StringUtils.hasText(dto.getCustomerName())) {
-            throw new RuntimeException("Khách lẻ phải nhập tên khách hàng");
         }
 
         Order order = new Order();
@@ -67,14 +87,18 @@ public class PosServiceImpl implements PosService {
 
         if (customer != null) {
             order.setCustomerName(
-                    StringUtils.hasText(dto.getCustomerName()) ? dto.getCustomerName() : customer.getUsername()
+                    StringUtils.hasText(dto.getCustomerName())
+                            ? dto.getCustomerName()
+                            : customer.getUsername()
             );
             order.setCustomerPhone(
-                    StringUtils.hasText(dto.getCustomerPhone()) ? dto.getCustomerPhone() : customer.getPhoneNumber()
+                    StringUtils.hasText(dto.getCustomerPhone())
+                            ? dto.getCustomerPhone()
+                            : customer.getPhoneNumber()
             );
         } else {
-            order.setCustomerName(dto.getCustomerName());
-            order.setCustomerPhone(dto.getCustomerPhone());
+            order.setCustomerName(StringUtils.hasText(dto.getCustomerName()) ? dto.getCustomerName() : null);
+            order.setCustomerPhone(StringUtils.hasText(dto.getCustomerPhone()) ? dto.getCustomerPhone() : null);
         }
 
         order.setNote(dto.getNote());
@@ -107,7 +131,9 @@ public class PosServiceImpl implements PosService {
             throw new RuntimeException("Sản phẩm đã hết hàng");
         }
 
-        if (productColor.getPrice() == null || productColor.getPrice().compareTo(BigDecimal.ZERO) <= 0) {
+        ProductPriceData priceData = resolveProductPrice(productColor);
+
+        if (priceData.getFinalPrice() == null || priceData.getFinalPrice().compareTo(BigDecimal.ZERO) <= 0) {
             throw new RuntimeException("Sản phẩm chưa có giá bán");
         }
 
@@ -120,13 +146,17 @@ public class PosServiceImpl implements PosService {
             detail.setOrderID(order);
             detail.setProductColorID(productColor);
             detail.setQuantity(dto.getQuantity());
-            detail.setPrice(productColor.getPrice());
+            detail.setPrice(priceData.getFinalPrice());
         } else {
             int newQuantity = detail.getQuantity() + dto.getQuantity();
             if (newQuantity > productColor.getStockQuantity()) {
                 throw new RuntimeException("Số lượng vượt quá tồn kho");
             }
             detail.setQuantity(newQuantity);
+
+            // giữ giá hiện tại trong đơn theo thời điểm thêm/sửa
+            // nếu bạn muốn luôn đồng bộ lại giá mới nhất thì bỏ comment dòng dưới
+            detail.setPrice(priceData.getFinalPrice());
         }
 
         if (detail.getQuantity() > productColor.getStockQuantity()) {
@@ -137,6 +167,42 @@ public class PosServiceImpl implements PosService {
         recalculateOrder(order);
         orderRepository.save(order);
 
+        return getOrder(orderId);
+    }
+
+    @Override
+    @Transactional
+    public PosOrderGetDto updateOrderInfo(Integer orderId, PutOfflineOrderInfoDto dto) {
+        Order order = getPendingOrder(orderId);
+
+        Account customer = null;
+        if (dto.getAccountId() != null) {
+            customer = accountRepository.findById(dto.getAccountId())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng"));
+        }
+
+        order.setAccountID(customer);
+
+        if (customer != null) {
+            order.setCustomerName(
+                    StringUtils.hasText(dto.getCustomerName())
+                            ? dto.getCustomerName()
+                            : customer.getUsername()
+            );
+            order.setCustomerPhone(
+                    StringUtils.hasText(dto.getCustomerPhone())
+                            ? dto.getCustomerPhone()
+                            : customer.getPhoneNumber()
+            );
+        } else {
+            order.setCustomerName(StringUtils.hasText(dto.getCustomerName()) ? dto.getCustomerName() : null);
+            order.setCustomerPhone(StringUtils.hasText(dto.getCustomerPhone()) ? dto.getCustomerPhone() : null);
+        }
+
+        order.setNote(dto.getNote());
+        order.setShippingAddress(dto.getShippingAddress());
+
+        orderRepository.save(order);
         return getOrder(orderId);
     }
 
@@ -225,6 +291,19 @@ public class PosServiceImpl implements PosService {
             throw new RuntimeException("Đơn hàng chưa có sản phẩm");
         }
 
+        if (order.getAccountID() == null && !StringUtils.hasText(order.getCustomerName())) {
+            throw new RuntimeException("Vui lòng nhập tên khách hàng trước khi thanh toán");
+        }
+
+        if (order.getAccountID() != null) {
+            if (!StringUtils.hasText(order.getCustomerName())) {
+                order.setCustomerName(order.getAccountID().getUsername());
+            }
+            if (!StringUtils.hasText(order.getCustomerPhone())) {
+                order.setCustomerPhone(order.getAccountID().getPhoneNumber());
+            }
+        }
+
         for (OrderDetail detail : details) {
             ProductColor productColor = productColorRepository.findById(detail.getProductColorID().getId())
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm"));
@@ -271,6 +350,28 @@ public class PosServiceImpl implements PosService {
         paymentRepository.save(payment);
 
         return getOrder(orderId);
+    }
+
+    @Override
+    @Transactional
+    public void cancelPendingOrder(Integer orderId, String email) {
+        Account employee = getCurrentEmployee(email);
+
+        Order order = orderRepository.findByIdAndEmployeeID_Id(orderId, employee.getId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng chờ"));
+
+        if (!"OFFLINE".equalsIgnoreCase(order.getOrderType())
+                || !"Pending".equalsIgnoreCase(order.getStatus())) {
+            throw new RuntimeException("Chỉ được đóng đơn OFFLINE đang ở trạng thái Pending");
+        }
+
+        order.setStatus("Cancelled");
+        orderRepository.save(order);
+    }
+
+    private Account getCurrentEmployee(String email) {
+        return accountRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên đăng nhập"));
     }
 
     private Order getOrderEntity(Integer orderId) {
@@ -364,20 +465,42 @@ public class PosServiceImpl implements PosService {
     }
 
     private PosProductColorGetDto mapProductColorDto(ProductColor pc) {
+        ProductPriceData priceData = resolveProductPrice(pc);
+
         PosProductColorGetDto dto = new PosProductColorGetDto();
         dto.setProductColorId(pc.getId());
         dto.setProductName(pc.getProductID().getProductName());
-        dto.setColorName(pc.getColorID().getColorName());
-        dto.setSizeName(pc.getSizeID().getSizeName());
-        dto.setPrice(pc.getPrice());
+        dto.setColorName(pc.getColorID() != null ? pc.getColorID().getColorName() : null);
+        dto.setSizeName(pc.getSizeID() != null ? pc.getSizeID().getSizeName() : null);
+
+        dto.setOriginalPrice(priceData.getOriginalPrice());
+        dto.setFinalPrice(priceData.getFinalPrice());
+        dto.setDiscountValue(priceData.getDiscountValue());
+        dto.setDiscountPercent(priceData.getDiscountPercent());
+        dto.setDiscounted(priceData.isDiscounted());
+        dto.setDiscountType(priceData.getDiscountType());
+        dto.setDiscountLabel(priceData.getDiscountLabel());
+
+        // tương thích frontend cũ
+        dto.setPrice(priceData.getFinalPrice());
+
         dto.setStockQuantity(pc.getStockQuantity());
+
         dto.setDisplayName(
                 pc.getProductID().getProductName()
-                        + " - " + pc.getColorID().getColorName()
-                        + " - " + pc.getSizeID().getSizeName()
-                        + " - " + formatMoney(pc.getPrice())
+                        + " - " + (pc.getColorID() != null ? pc.getColorID().getColorName() : "-")
+                        + " - " + (pc.getSizeID() != null ? pc.getSizeID().getSizeName() : "-")
+                        + " - " + formatMoney(priceData.getFinalPrice())
                         + " - Tồn: " + pc.getStockQuantity()
         );
+
+        if (pc.getImages() != null && !pc.getImages().isEmpty()) {
+            Image firstImage = pc.getImages().get(0);
+            dto.setImageUrl(firstImage.getImageUrl());
+        } else {
+            dto.setImageUrl(null);
+        }
+
         return dto;
     }
 
@@ -441,5 +564,186 @@ public class PosServiceImpl implements PosService {
     private String formatMoney(BigDecimal amount) {
         if (amount == null) return "0";
         return String.format("%,.0f", amount);
+    }
+
+    private static class ProductPriceData {
+        private final BigDecimal originalPrice;
+        private final BigDecimal finalPrice;
+        private final BigDecimal discountValue;
+        private final Integer discountPercent;
+        private final boolean discounted;
+        private final String discountType;
+        private final String discountLabel;
+
+        public ProductPriceData(
+                BigDecimal originalPrice,
+                BigDecimal finalPrice,
+                BigDecimal discountValue,
+                Integer discountPercent,
+                boolean discounted,
+                String discountType,
+                String discountLabel
+        ) {
+            this.originalPrice = originalPrice;
+            this.finalPrice = finalPrice;
+            this.discountValue = discountValue;
+            this.discountPercent = discountPercent;
+            this.discounted = discounted;
+            this.discountType = discountType;
+            this.discountLabel = discountLabel;
+        }
+
+        public BigDecimal getOriginalPrice() {
+            return originalPrice;
+        }
+
+        public BigDecimal getFinalPrice() {
+            return finalPrice;
+        }
+
+        public BigDecimal getDiscountValue() {
+            return discountValue;
+        }
+
+        public Integer getDiscountPercent() {
+            return discountPercent;
+        }
+
+        public boolean isDiscounted() {
+            return discounted;
+        }
+
+        public String getDiscountType() {
+            return discountType;
+        }
+
+        public String getDiscountLabel() {
+            return discountLabel;
+        }
+    }
+
+    private ProductPriceData resolveProductPrice(ProductColor productColor) {
+        BigDecimal originalPrice = productColor.getPrice();
+
+        if (originalPrice == null || originalPrice.compareTo(BigDecimal.ZERO) <= 0) {
+            return new ProductPriceData(
+                    BigDecimal.ZERO,
+                    BigDecimal.ZERO,
+                    BigDecimal.ZERO,
+                    0,
+                    false,
+                    null,
+                    null
+            );
+        }
+
+        LocalDate today = LocalDate.now();
+
+        List<ProductDiscount> activeDiscounts = productDiscountRepository.findActiveDiscounts(
+                productColor.getId(),
+                today
+        );
+
+        if (activeDiscounts == null || activeDiscounts.isEmpty()) {
+            return new ProductPriceData(
+                    originalPrice,
+                    originalPrice,
+                    BigDecimal.ZERO,
+                    0,
+                    false,
+                    null,
+                    null
+            );
+        }
+
+        ProductPriceData bestPrice = activeDiscounts.stream()
+                .map(discount -> calculateDiscountedPrice(originalPrice, discount))
+                .min(Comparator.comparing(ProductPriceData::getFinalPrice))
+                .orElse(new ProductPriceData(
+                        originalPrice,
+                        originalPrice,
+                        BigDecimal.ZERO,
+                        0,
+                        false,
+                        null,
+                        null
+                ));
+
+        return bestPrice;
+    }
+
+    private ProductPriceData calculateDiscountedPrice(BigDecimal originalPrice, ProductDiscount discount) {
+        if (discount == null || originalPrice == null || originalPrice.compareTo(BigDecimal.ZERO) <= 0) {
+            return new ProductPriceData(
+                    originalPrice,
+                    originalPrice,
+                    BigDecimal.ZERO,
+                    0,
+                    false,
+                    null,
+                    null
+            );
+        }
+
+        BigDecimal realDiscountValue = BigDecimal.ZERO;
+        String discountType = discount.getDiscountType();
+
+        if ("percent".equalsIgnoreCase(discountType)) {
+            BigDecimal percent = discount.getDiscountValue() == null
+                    ? BigDecimal.ZERO
+                    : discount.getDiscountValue();
+
+            realDiscountValue = originalPrice
+                    .multiply(percent)
+                    .divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
+
+            if (discount.getMaxDiscountValue() != null
+                    && discount.getMaxDiscountValue().compareTo(BigDecimal.ZERO) > 0
+                    && realDiscountValue.compareTo(discount.getMaxDiscountValue()) > 0) {
+                realDiscountValue = discount.getMaxDiscountValue();
+            }
+        } else if ("fixed".equalsIgnoreCase(discountType)) {
+            realDiscountValue = discount.getDiscountValue() == null
+                    ? BigDecimal.ZERO
+                    : discount.getDiscountValue();
+        }
+
+        if (realDiscountValue.compareTo(BigDecimal.ZERO) < 0) {
+            realDiscountValue = BigDecimal.ZERO;
+        }
+
+        if (realDiscountValue.compareTo(originalPrice) > 0) {
+            realDiscountValue = originalPrice;
+        }
+
+        BigDecimal finalPrice = originalPrice.subtract(realDiscountValue);
+        if (finalPrice.compareTo(BigDecimal.ZERO) < 0) {
+            finalPrice = BigDecimal.ZERO;
+        }
+
+        Integer discountPercent = 0;
+        if (originalPrice.compareTo(BigDecimal.ZERO) > 0 && realDiscountValue.compareTo(BigDecimal.ZERO) > 0) {
+            discountPercent = realDiscountValue
+                    .multiply(BigDecimal.valueOf(100))
+                    .divide(originalPrice, 0, RoundingMode.HALF_UP)
+                    .intValue();
+        }
+
+        String discountLabel = null;
+        if ("percent".equalsIgnoreCase(discountType) && discount.getDiscountValue() != null) {
+            discountLabel = "-" + discount.getDiscountValue().stripTrailingZeros().toPlainString() + "%";
+        } else if ("fixed".equalsIgnoreCase(discountType) && realDiscountValue.compareTo(BigDecimal.ZERO) > 0) {
+            discountLabel = "-" + formatMoney(realDiscountValue) + "đ";
+        }
+
+        return new ProductPriceData(
+                originalPrice,
+                finalPrice,
+                realDiscountValue,
+                discountPercent,
+                realDiscountValue.compareTo(BigDecimal.ZERO) > 0,
+                discountType,
+                discountLabel
+        );
     }
 }
