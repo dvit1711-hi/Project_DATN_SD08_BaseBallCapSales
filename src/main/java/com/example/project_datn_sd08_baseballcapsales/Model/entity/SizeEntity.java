@@ -33,6 +33,10 @@ public class SizeEntity {
     @Column(name = "sizeDescription", length = 200)
     private String sizeDescription;
 
+    @Size(max = 20)
+    @Column(name = "status", length = 20)
+    private String status;
+
     @OneToMany(mappedBy = "sizeID")
     private List<ProductColor> productColors;
 }

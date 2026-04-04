@@ -21,9 +21,13 @@ public class GetColorDto {
     @Nationalized
     private String colorCode;
 
+    @Size(max = 20)
+    private String status;
+
     public GetColorDto(Color color) {
         this.colorID = color.getId();
         this.colorName = color.getColorName();
         this.colorCode = color.getColorCode();
+        this.status = color.getStatus();
     }
 }

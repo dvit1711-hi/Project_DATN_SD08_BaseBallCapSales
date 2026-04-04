@@ -19,4 +19,7 @@ public class PutColorDto {
     @Size(max = 20)
     @Nationalized
     private String colorCode;
+
+    @Size(max = 20)
+    private String status;
 }

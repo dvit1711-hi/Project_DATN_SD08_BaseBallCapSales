@@ -15,4 +15,6 @@ public class PostBrandDto {
     @NotNull
     @Nationalized
     private String name;
+    @Size(max = 20)
+    private String status;
 }

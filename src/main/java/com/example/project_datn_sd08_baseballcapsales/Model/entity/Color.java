@@ -30,5 +30,8 @@ public class Color {
     @Column(name = "colorCode", length = 20)
     private String colorCode;
 
+    @Size(max = 20)
+    @Column(name = "status", length = 20)
+    private String status;
 
 }

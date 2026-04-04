@@ -12,4 +12,6 @@ import org.hibernate.annotations.Nationalized;
 public class PostColorDto {
     private String colorName;
     private String colorCode;
+    @Size(max = 20)
+    private String status;
 }

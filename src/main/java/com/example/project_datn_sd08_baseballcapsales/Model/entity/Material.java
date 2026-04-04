@@ -28,6 +28,10 @@ public class Material {
     @Column(name = "materialName", length = 100, nullable = false)
     private String materialName;
 
+    @Size(max = 20)
+    @Column(name = "status", length = 20)
+    private String status;
+
     @OneToMany(mappedBy = "materialID")
     private List<Product> products;
 }

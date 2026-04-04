@@ -2,6 +2,7 @@ package com.example.project_datn_sd08_baseballcapsales.Model.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -43,6 +44,10 @@ public class ProductColor {
 
     @Column(name = "stockQuantity")
     private Integer stockQuantity;
+
+    @Size(max = 20)
+    @Column(name = "status", length = 20)
+    private String status;
 
     @OneToMany(mappedBy = "productColorID")
     private List<Image> images;

@@ -20,8 +20,12 @@ public class GetBranDto {
     @Nationalized
     private String name;
 
+    @Size(max = 20)
+    private String status;
+
     public GetBranDto(Brand brand) {
         this.brandID = brand.getBrandID();
         this.name = brand.getName();
+        this.status = brand.getStatus();
     }
 }

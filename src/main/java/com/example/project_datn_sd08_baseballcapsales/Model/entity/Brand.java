@@ -27,5 +27,8 @@ public class Brand {
     @Column(name = "name", nullable = false, length = 100)
     private String name;
 
+    @Size(max = 20)
+    @Column(name = "status", length = 20)
+    private String status;
 
 }
