@@ -24,6 +24,11 @@ public class BrandController {
         return brandService.getAllBrands();
     }
 
+    @GetMapping("/active")
+    public List<GetBranDto> getBrandsActive() {
+        return brandService.getActiveBrands();
+    }
+
     @PostMapping
     public ResponseEntity<Brand> createBrand(@Valid @RequestBody PostBrandDto dto) {
         return ResponseEntity.ok(brandService.postBrand(dto));
@@ -37,7 +42,6 @@ public class BrandController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteBrand(@PathVariable Integer id) {
-        brandService.deleteBrand(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(brandService.deleteBrand(id));
     }
 }

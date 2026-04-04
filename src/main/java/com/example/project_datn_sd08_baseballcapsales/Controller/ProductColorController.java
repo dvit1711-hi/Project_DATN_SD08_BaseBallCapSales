@@ -43,8 +43,7 @@ public class ProductColorController {
     }
 
     @DeleteMapping("/{productColorId}")
-    public ResponseEntity<Void> deleteProductColor(@PathVariable Integer productColorId) {
-        productColorService.deleteProductColor(productColorId);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<?> deleteProductColor(@PathVariable Integer productColorId) {
+        return ResponseEntity.ok(productColorService.deleteProductColor(productColorId));
     }
 }

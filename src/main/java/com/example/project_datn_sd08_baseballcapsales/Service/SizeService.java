@@ -3,7 +3,9 @@ package com.example.project_datn_sd08_baseballcapsales.Service;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.PostDto.PostSizeDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetSizeDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.SizeEntity;
+import com.example.project_datn_sd08_baseballcapsales.Repository.ProductColorRepository;
 import com.example.project_datn_sd08_baseballcapsales.Repository.SizeRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -15,8 +17,18 @@ public class SizeService {
     @Autowired
     private SizeRepository sizeRepository;
 
+    @Autowired
+    private ProductColorRepository productColorRepository;
+
     public List<GetSizeDto> getAll() {
         return sizeRepository.findAll()
+                .stream()
+                .map(GetSizeDto::new)
+                .toList();
+    }
+
+    public List<GetSizeDto> getAllActive() {
+        return sizeRepository.findByStatus("ACTIVE")
                 .stream()
                 .map(GetSizeDto::new)
                 .toList();
@@ -32,9 +44,14 @@ public class SizeService {
             throw new IllegalArgumentException("Tên size không được để trống");
         }
 
+        if (sizeRepository.existsBySizeNameIgnoreCase(dto.getSizeName().trim())) {
+            throw new IllegalArgumentException("Size đã tồn tại");
+        }
+
         SizeEntity size = new SizeEntity();
-        size.setSizeName(dto.getSizeName());
+        size.setSizeName(dto.getSizeName().trim());
         size.setSizeDescription(dto.getSizeDescription());
+        size.setStatus(dto.getStatus() == null || dto.getStatus().isBlank() ? "ACTIVE" : dto.getStatus().trim());
 
         return sizeRepository.save(size);
     }
@@ -47,15 +64,26 @@ public class SizeService {
             throw new IllegalArgumentException("Tên size không được để trống");
         }
 
-        size.setSizeName(dto.getSizeName());
+        size.setSizeName(dto.getSizeName().trim());
         size.setSizeDescription(dto.getSizeDescription());
-
+        size.setStatus(dto.getStatus());
         return sizeRepository.save(size);
     }
 
-    public void delete(Integer id) {
+    @Transactional
+    public String delete(Integer id) {
         SizeEntity size = sizeRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Size not found"));
+
+        boolean used = productColorRepository.existsBySizeID_SizeID(id);
+
+        if (used) {
+            size.setStatus("INACTIVE");
+            sizeRepository.save(size);
+            return "Size đang được sử dụng, đã chuyển sang INACTIVE";
+        }
+
         sizeRepository.delete(size);
+        return "Đã xóa size";
     }
 }

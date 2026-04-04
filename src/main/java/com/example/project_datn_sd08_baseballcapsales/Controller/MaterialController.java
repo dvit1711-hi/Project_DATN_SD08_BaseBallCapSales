@@ -22,6 +22,11 @@ public class MaterialController {
         return materialService.getAll();
     }
 
+    @GetMapping("/active")
+    public List<GetMaterialDto> getAllActive() {
+        return materialService.getAllActive();
+    }
+
     @GetMapping("/{id}")
     public Material getById(@PathVariable Integer id) {
         return materialService.getById(id);
@@ -39,8 +44,7 @@ public class MaterialController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Integer id) {
-        materialService.delete(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<?> delete(@PathVariable Integer id) {
+        return ResponseEntity.ok(materialService.delete(id));
     }
 }

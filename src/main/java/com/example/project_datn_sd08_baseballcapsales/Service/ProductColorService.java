@@ -15,6 +15,7 @@ import com.example.project_datn_sd08_baseballcapsales.Repository.*;
 import com.example.project_datn_sd08_baseballcapsales.Repository.SizeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -38,6 +39,12 @@ public class ProductColorService {
     @Autowired
     private SizeRepository sizeRepository;
 
+    @Autowired
+    private OrderDetailRepository orderDetailRepository;
+
+    @Autowired
+    private CartItemRepository cartItemRepository;
+
     public ProductDetailDto getProductDetail(Integer id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Product not found"));
@@ -54,6 +61,7 @@ public class ProductColorService {
             colorDto.setColorCode(pc.getColorID().getColorCode());
             colorDto.setStockQuantity(pc.getStockQuantity());
             colorDto.setPrice(pc.getPrice());
+            pc.getStatus();
             colorDto.setSizeID(pc.getSizeID() != null ? pc.getSizeID().getSizeID() : null);
             colorDto.setSizeName(pc.getSizeID() != null ? pc.getSizeID().getSizeName() : null);
 
@@ -147,6 +155,7 @@ public class ProductColorService {
         pc.setSizeID(size);
         pc.setPrice(dto.getPrice());
         pc.setStockQuantity(dto.getStockQuantity() != null ? dto.getStockQuantity() : 0);
+        pc.setStatus(dto.getStatus() == null || dto.getStatus().isBlank() ? "ACTIVE" : dto.getStatus().trim());
 
         return productColorRepository.save(pc);
     }
@@ -192,18 +201,31 @@ public class ProductColorService {
         pc.setColorID(color);
         pc.setSizeID(size);
         pc.setPrice(dto.getPrice());
+        pc.setStatus(dto.getStatus());
         pc.setStockQuantity(dto.getStockQuantity() != null ? dto.getStockQuantity() : 0);
 
         return productColorRepository.save(pc);
     }
 
-    public void deleteProductColor(Integer productColorId) {
+    @Transactional
+    public String deleteProductColor(Integer productColorId) {
         ProductColor pc = productColorRepository.findById(productColorId)
                 .orElseThrow(() -> new RuntimeException("Product color not found"));
+
+        boolean usedInOrder = orderDetailRepository.existsByProductColorID_Id(productColorId);
+        boolean usedInCart = cartItemRepository.existsByProductColorID_Id(productColorId);
+
+        if (usedInOrder || usedInCart) {
+            pc.setStatus("INACTIVE");
+            pc.setStockQuantity(0);
+            productColorRepository.save(pc);
+            return "Biến thể đã phát sinh dữ liệu, đã chuyển sang INACTIVE";
+        }
 
         List<Image> images = imageRepository.findByProductColorID_Id(productColorId);
         imageRepository.deleteAll(images);
         productColorRepository.delete(pc);
+        return "Đã xóa cứng biến thể";
     }
 
     public List<ProductCardDto> getProductCards() {

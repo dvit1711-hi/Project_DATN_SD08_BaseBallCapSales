@@ -24,6 +24,11 @@ public class ColorController {
         return colorService.getAllColors();
     }
 
+    @GetMapping("/active")
+    public List<GetColorDto> getAllActive() {
+        return colorService.getActiveColors();
+    }
+
     @PostMapping
     public ResponseEntity<?> postColor(@Valid @RequestBody PostColorDto dto) {
         Color color = colorService.postColor(dto);
@@ -42,10 +47,6 @@ public class ColorController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteColor(@PathVariable Integer id) {
-        boolean deleted = colorService.deleteColor(id);
-        if (!deleted) {
-            return ResponseEntity.status(404).body("Color not found");
-        }
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(colorService.deleteColor(id));
     }
 }

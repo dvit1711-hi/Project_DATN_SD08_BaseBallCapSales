@@ -22,6 +22,11 @@ public class SizeController {
         return sizeService.getAll();
     }
 
+    @GetMapping("/active")
+    public List<GetSizeDto> getAllActive() {
+        return sizeService.getAllActive();
+    }
+
     @GetMapping("/{id}")
     public SizeEntity getById(@PathVariable Integer id) {
         return sizeService.getById(id);
@@ -39,8 +44,7 @@ public class SizeController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Integer id) {
-        sizeService.delete(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<?> delete(@PathVariable Integer id) {
+        return ResponseEntity.ok(sizeService.delete(id));
     }
 }
