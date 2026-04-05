@@ -3,12 +3,16 @@ package com.example.project_datn_sd08_baseballcapsales.Service;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetPaidOrderWithDetailsDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.*;
 import com.example.project_datn_sd08_baseballcapsales.Repository.*;
+import com.example.project_datn_sd08_baseballcapsales.payload.reponse.MBBankPaymentInfoResponse;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
@@ -48,6 +52,27 @@ public class PaymentService {
 
     @Autowired
     private ProductDiscountService productDiscountService;
+
+    @Value("${mbbank.bank-code:MB}")
+    private String mbBankCode;
+
+    @Value("${mbbank.bank-name:MB Bank}")
+    private String mbBankName;
+
+    @Value("${mbbank.account-number:}")
+    private String mbBankAccountNumber;
+
+    @Value("${mbbank.account-name:}")
+    private String mbBankAccountName;
+
+    @Value("${mbbank.vietqr.base-url:https://img.vietqr.io/image}")
+    private String mbBankVietQrBaseUrl;
+
+    @Value("${mbbank.vietqr.bin:970422}")
+    private String mbBankVietQrBin;
+
+    @Value("${mbbank.vietqr.template:compact2}")
+    private String mbBankVietQrTemplate;
 
     //    tien mat
     @Transactional
@@ -185,6 +210,43 @@ public class PaymentService {
                 .toList();
     }
 
+    public MBBankPaymentInfoResponse getMBBankPaymentInfo(Integer orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng"));
+
+        Payment payment = paymentRepository.findTopByOrderIDOrderByIdDesc(order)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy thanh toán của đơn hàng"));
+
+        String paymentMethod = normalizePaymentMethod(payment.getMethod());
+        if (!"BANK_TRANSFER".equals(paymentMethod)) {
+            throw new RuntimeException("Đơn hàng này không sử dụng phương thức chuyển khoản ngân hàng");
+        }
+
+        String accountNo = safeTrim(mbBankAccountNumber);
+        String accountName = safeTrim(mbBankAccountName);
+        if (accountNo.isEmpty() || accountName.isEmpty()) {
+            throw new RuntimeException("MB Bank chưa được cấu hình đầy đủ trên hệ thống");
+        }
+
+        BigDecimal amount = payment.getAmount() != null ? payment.getAmount() : order.getTotalAmount();
+        if (amount == null) {
+            amount = BigDecimal.ZERO;
+        }
+
+        String transferContent = "DH" + order.getId();
+
+        MBBankPaymentInfoResponse response = new MBBankPaymentInfoResponse();
+        response.setOrderId(order.getId());
+        response.setAmount(amount);
+        response.setBankCode(safeTrim(mbBankCode));
+        response.setBankName(safeTrim(mbBankName));
+        response.setAccountNumber(accountNo);
+        response.setAccountName(accountName);
+        response.setTransferContent(transferContent);
+        response.setQrUrl(buildVietQrUrl(amount, transferContent, accountName, accountNo));
+        return response;
+    }
+
     @Transactional
     public Payment confirmPayment(Integer orderId) {
         Order order = orderRepository.findById(orderId)
@@ -219,14 +281,14 @@ public class PaymentService {
             throw new RuntimeException("Bạn không có quyền hủy đơn hàng này");
         }
 
-        return cancelOrderInternal(order);
+        return cancelOrderInternal(order, true);
     }
 
     @Transactional
     public Order cancelOrderByAdmin(Integer orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng"));
-        return cancelOrderInternal(order);
+        return cancelOrderInternal(order, false);
     }
 
     private GetPaidOrderWithDetailsDto mapOrderToDetailsDto(Order order) {
@@ -266,7 +328,7 @@ public class PaymentService {
                 .orElse(null);
     }
 
-    private Order cancelOrderInternal(Order order) {
+    private Order cancelOrderInternal(Order order, boolean restoreToCart) {
         String currentOrderStatus = normalizeOrderStatus(order.getStatus());
         if ("CANCELLED".equals(currentOrderStatus)) {
             throw new RuntimeException("Đơn hàng đã được hủy trước đó");
@@ -292,6 +354,10 @@ public class PaymentService {
             Integer quantity = detail.getQuantity() == null ? 0 : detail.getQuantity();
             productColor.setStockQuantity(currentStock + Math.max(quantity, 0));
             productColorRepository.save(productColor);
+
+            if (restoreToCart && quantity > 0 && order.getAccountID() != null) {
+                restoreItemToCart(order.getAccountID(), productColor, quantity);
+            }
         }
 
         DiscountCoupon coupon = order.getCouponID();
@@ -310,6 +376,34 @@ public class PaymentService {
         }
 
         return order;
+    }
+
+    private void restoreItemToCart(Account account, ProductColor productColor, Integer quantity) {
+        if (account == null || productColor == null || quantity == null || quantity <= 0) {
+            return;
+        }
+
+        Cart cart = cartRepository.findByAccountID_Id(account.getId())
+                .orElseGet(() -> {
+                    Cart newCart = new Cart();
+                    newCart.setAccountID(account);
+                    return cartRepository.save(newCart);
+                });
+
+        List<CartItem> existingItems = cartItemRepository.findByCartID_IdAndProductColorID_Id(cart.getId(), productColor.getId());
+        CartItem cartItem;
+        if (existingItems.isEmpty()) {
+            cartItem = new CartItem();
+            cartItem.setCartID(cart);
+            cartItem.setProductColorID(productColor);
+            cartItem.setQuantity(quantity);
+        } else {
+            cartItem = existingItems.get(0);
+            Integer currentQty = cartItem.getQuantity() == null ? 0 : cartItem.getQuantity();
+            cartItem.setQuantity(currentQty + quantity);
+        }
+
+        cartItemRepository.save(cartItem);
     }
 
     private DiscountCoupon validateCoupon(String couponCode, BigDecimal orderAmount) {
@@ -394,7 +488,54 @@ public class PaymentService {
             case "", "COD", "CASH" -> "COD";
             case "BANKING", "BANK", "TRANSFER", "BANK_TRANSFER" -> "BANK_TRANSFER";
             case "EWALLET", "E-WALLET", "E_WALLET" -> "E_WALLET";
+            case "MB", "MBBANK", "MB BANK", "MB-BANK", "MB_BANK" -> "BANK_TRANSFER";
             default -> normalized;
         };
+    }
+
+    private String buildVietQrUrl(BigDecimal amount, String transferContent, String accountName, String accountNumber) {
+        String baseUrl = safeTrim(mbBankVietQrBaseUrl);
+        if (baseUrl.endsWith("/")) {
+            baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
+        }
+
+        long amountValue = amount.max(BigDecimal.ZERO).setScale(0, RoundingMode.HALF_UP).longValue();
+        String bankCode = resolveVietQrBankCode();
+        String template = safeTrim(mbBankVietQrTemplate);
+        if (template.isEmpty()) {
+            template = "compact2";
+        }
+
+        return String.format(
+                "%s/%s-%s-%s.png?amount=%d&addInfo=%s&accountName=%s",
+                baseUrl,
+                bankCode,
+                accountNumber,
+                template,
+                amountValue,
+                urlEncode(transferContent),
+                urlEncode(accountName)
+        );
+    }
+
+    private String urlEncode(String value) {
+        return URLEncoder.encode(value == null ? "" : value, StandardCharsets.UTF_8);
+    }
+
+    private String safeTrim(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private String resolveVietQrBankCode() {
+        String explicitBin = safeTrim(mbBankVietQrBin);
+        if (!explicitBin.isEmpty()) {
+            return explicitBin;
+        }
+
+        String bankCode = safeTrim(mbBankCode).toUpperCase(Locale.ROOT);
+        if ("MB".equals(bankCode) || "MBBANK".equals(bankCode) || "MB BANK".equals(bankCode)) {
+            return "970422";
+        }
+        return bankCode;
     }
 }
