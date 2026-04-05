@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @NoArgsConstructor
@@ -16,4 +17,5 @@ public class CheckoutRequest {
     private String method;
     private List<Integer> cartItemIds;
     private String couponCode;
+    private BigDecimal shippingFee;
 }
