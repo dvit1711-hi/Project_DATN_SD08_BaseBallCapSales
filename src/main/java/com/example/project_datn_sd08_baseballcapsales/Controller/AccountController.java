@@ -48,7 +48,7 @@ public class AccountController {
     public ResponseEntity<?> getById(@PathVariable int id) {
 
         Account acc = accountRepository.findById(id).orElse(null);
-        Address address = addressRepository.findByAccount_Id(id);
+        Address address = addressRepository.findTopByAccount_IdOrderByIdDesc(id);
 
         Map<String, Object> result = new HashMap<>();
         result.put("account", acc != null ? new GetAccountDto(acc) : null);

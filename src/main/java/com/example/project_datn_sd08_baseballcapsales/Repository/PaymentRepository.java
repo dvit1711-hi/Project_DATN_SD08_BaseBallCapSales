@@ -10,8 +10,8 @@ import java.util.List;
 import java.util.Optional;
 
 public interface PaymentRepository extends JpaRepository<Payment, Integer> {
-    Optional<Payment> findByOrderID(Order order);
-    
+    Optional<Payment> findTopByOrderIDOrderByIdDesc(Order order);
+
     Optional<Payment> findByOrderID_IdAndStatus(Integer orderId, String status);
 
     @Query("select p.method, count(p) from Payment p group by p.method")
@@ -20,6 +20,6 @@ public interface PaymentRepository extends JpaRepository<Payment, Integer> {
     @Query("select p.status, count(p) from Payment p group by p.status")
     List<Object[]> countByStatus();
 
-    @Query("select coalesce(sum(p.amount), 0) from Payment p where p.status = 'SUCCESS'")
+    @Query("select coalesce(sum(p.amount), 0) from Payment p where upper(p.status) in ('PAID', 'SUCCESS')")
     BigDecimal totalSuccessfulPayment();
 }

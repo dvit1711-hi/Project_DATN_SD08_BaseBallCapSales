@@ -106,7 +106,7 @@ public class AccountService {
         accountRepository.save(acc);
 
         // UPDATE ADDRESS
-        Address address = addressRepository.findByAccount_Id(dto.getAccountId());
+        Address address = addressRepository.findTopByAccount_IdOrderByIdDesc(dto.getAccountId());
 
         if (address == null) {
             address = new Address();

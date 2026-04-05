@@ -88,6 +88,6 @@ public class AddressService {
     }
 
     public Address getAddressByAccountId(int accountId) {
-        return addressRepository.findByAccount_Id(accountId);
+        return addressRepository.findTopByAccount_IdOrderByIdDesc(accountId);
     }
 }

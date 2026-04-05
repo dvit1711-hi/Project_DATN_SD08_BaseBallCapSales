@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface AddressRepository extends JpaRepository<Address, Integer> {
-    Address findByAccount_Id(Integer accountId);
+    Address findTopByAccount_IdOrderByIdDesc(Integer accountId);
 
-    Address findByAccount(Account account);
+    Address findTopByAccountOrderByIdDesc(Account account);
 }

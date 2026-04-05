@@ -12,6 +12,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -101,8 +102,9 @@ public class PaymentService {
         BigDecimal subTotal = BigDecimal.ZERO;
         Order order = new Order();
         order.setAccountID(account);
+        order.setOrderType("ONLINE");
         order.setStatus("PENDING_PAYMENT");
-        Address address = addressRepository.findByAccount_Id(accountId);
+        Address address = addressRepository.findTopByAccount_IdOrderByIdDesc(accountId);
         order.setShippingAddress(formatAddressSnapshot(address));
         order = orderRepository.save(order);
         for (CartItem item : cartItems) {
@@ -154,7 +156,7 @@ public class PaymentService {
         order.setTotalAmount(total);
         orderRepository.save(order);
 
-        String normalizedMethod = method == null ? "COD" : method.trim().toUpperCase();
+        String normalizedMethod = normalizePaymentMethod(method);
         if (!List.of("COD", "BANK_TRANSFER", "E_WALLET").contains(normalizedMethod)) {
             throw new RuntimeException("Phương thức thanh toán không hợp lệ");
         }
@@ -188,8 +190,19 @@ public class PaymentService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng"));
 
-        Payment payment = paymentRepository.findByOrderID(order)
+        Payment payment = paymentRepository.findTopByOrderIDOrderByIdDesc(order)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy thanh toán của đơn hàng"));
+
+        String currentOrderStatus = normalizeOrderStatus(order.getStatus());
+        String currentPaymentStatus = normalizePaymentStatus(payment.getStatus());
+
+        if ("CANCELLED".equals(currentOrderStatus) || "CANCELLED".equals(currentPaymentStatus)) {
+            throw new RuntimeException("Không thể xác nhận thanh toán cho đơn đã hủy");
+        }
+
+        if ("PAID".equals(currentOrderStatus) || "PAID".equals(currentPaymentStatus)) {
+            throw new RuntimeException("Đơn hàng đã được thanh toán trước đó");
+        }
 
         payment.setStatus("PAID");
         order.setStatus("PAID");
@@ -217,16 +230,20 @@ public class PaymentService {
     }
 
     private GetPaidOrderWithDetailsDto mapOrderToDetailsDto(Order order) {
-        var paymentOpt = paymentRepository.findByOrderID(order);
+        var paymentOpt = paymentRepository.findTopByOrderIDOrderByIdDesc(order);
         String paymentStatus = paymentOpt
                 .map(Payment::getStatus)
+                .map(this::normalizePaymentStatus)
                 .orElse("UNKNOWN");
         String paymentMethod = paymentOpt
                 .map(Payment::getMethod)
+                .map(this::normalizePaymentMethod)
                 .orElse("UNKNOWN");
 
         List<OrderDetail> orderDetails = orderDetailRepository.findByOrderID_Id(order.getId());
-        return new GetPaidOrderWithDetailsDto(order, paymentStatus, paymentMethod, orderDetails);
+        GetPaidOrderWithDetailsDto dto = new GetPaidOrderWithDetailsDto(order, paymentStatus, paymentMethod, orderDetails);
+        dto.setOrderStatus(normalizeOrderStatus(order.getStatus()));
+        return dto;
     }
 
     private String formatAddressSnapshot(Address address) {
@@ -250,14 +267,14 @@ public class PaymentService {
     }
 
     private Order cancelOrderInternal(Order order) {
-        String currentOrderStatus = order.getStatus() == null ? "" : order.getStatus().trim().toUpperCase();
+        String currentOrderStatus = normalizeOrderStatus(order.getStatus());
         if ("CANCELLED".equals(currentOrderStatus)) {
             throw new RuntimeException("Đơn hàng đã được hủy trước đó");
         }
 
-        Payment payment = paymentRepository.findByOrderID(order).orElse(null);
-        String paymentStatus = payment != null && payment.getStatus() != null
-                ? payment.getStatus().trim().toUpperCase()
+        Payment payment = paymentRepository.findTopByOrderIDOrderByIdDesc(order).orElse(null);
+        String paymentStatus = payment != null
+                ? normalizePaymentStatus(payment.getStatus())
                 : "";
 
         if ("PAID".equals(paymentStatus) || "PAID".equals(currentOrderStatus)) {
@@ -347,5 +364,37 @@ public class PaymentService {
         }
 
         return discount.max(BigDecimal.ZERO).min(orderAmount);
+    }
+
+    private String normalizePaymentStatus(String status) {
+        String normalized = status == null ? "" : status.trim().toUpperCase(Locale.ROOT);
+        return switch (normalized) {
+            case "SUCCESS" -> "PAID";
+            case "UNPAID", "PAID", "CANCELLED", "UNKNOWN" -> normalized;
+            case "CANCELED" -> "CANCELLED";
+            case "PENDING", "PENDING_PAYMENT" -> "UNPAID";
+            default -> normalized.isEmpty() ? "UNKNOWN" : normalized;
+        };
+    }
+
+    private String normalizeOrderStatus(String status) {
+        String normalized = status == null ? "" : status.trim().toUpperCase(Locale.ROOT);
+        return switch (normalized) {
+            case "COMPLETED" -> "PAID";
+            case "CANCELED" -> "CANCELLED";
+            case "PENDING" -> "PENDING_PAYMENT";
+            case "PENDING_PAYMENT", "PAID", "CANCELLED" -> normalized;
+            default -> normalized;
+        };
+    }
+
+    private String normalizePaymentMethod(String method) {
+        String normalized = method == null ? "" : method.trim().toUpperCase(Locale.ROOT);
+        return switch (normalized) {
+            case "", "COD", "CASH" -> "COD";
+            case "BANKING", "BANK", "TRANSFER", "BANK_TRANSFER" -> "BANK_TRANSFER";
+            case "EWALLET", "E-WALLET", "E_WALLET" -> "E_WALLET";
+            default -> normalized;
+        };
     }
 }
