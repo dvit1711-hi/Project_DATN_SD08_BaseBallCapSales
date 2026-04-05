@@ -5,6 +5,7 @@ import com.example.project_datn_sd08_baseballcapsales.Model.dto.PutDto.PutProduc
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetProductColorDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.ProductColor;
 import com.example.project_datn_sd08_baseballcapsales.Service.ProductColorService;
+import com.example.project_datn_sd08_baseballcapsales.payload.ApiResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -29,21 +30,24 @@ public class ProductColorController {
     }
 
     @PostMapping("/{productId}/color")
-    public ResponseEntity<ProductColor> addProductColor(
+    public ResponseEntity<?> addProductColor(
             @PathVariable Integer productId,
             @RequestBody PostProductColorDto dto) {
-        return ResponseEntity.ok(productColorService.createProductColor(productId, dto));
+        ProductColor result = productColorService.createProductColor(productId, dto);
+        return ResponseEntity.ok(ApiResponse.success("Thêm biến thể thành công", result.getId()));
     }
 
     @PutMapping("/{productColorId}")
-    public ResponseEntity<ProductColor> updateProductColor(
+    public ResponseEntity<?> updateProductColor(
             @PathVariable Integer productColorId,
             @RequestBody PutProductColorDto dto) {
-        return ResponseEntity.ok(productColorService.updateProductColor(productColorId, dto));
+        ProductColor result = productColorService.updateProductColor(productColorId, dto);
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật biến thể thành công", result.getId()));
     }
 
     @DeleteMapping("/{productColorId}")
     public ResponseEntity<?> deleteProductColor(@PathVariable Integer productColorId) {
-        return ResponseEntity.ok(productColorService.deleteProductColor(productColorId));
+        productColorService.deleteProductColor(productColorId);
+        return ResponseEntity.ok(ApiResponse.success("Xóa biến thể thành công"));
     }
 }
