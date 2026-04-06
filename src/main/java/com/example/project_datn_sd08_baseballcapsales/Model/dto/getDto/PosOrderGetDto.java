@@ -34,5 +34,8 @@ public class PosOrderGetDto {
     private BigDecimal discountAmount;
     private BigDecimal totalAmount;
 
+    private String paymentMethod;
+    private String paymentStatus;
+
     private List<PosOrderItemGetDto> items;
 }

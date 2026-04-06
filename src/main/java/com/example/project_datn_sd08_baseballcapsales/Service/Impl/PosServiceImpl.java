@@ -323,6 +323,12 @@ public class PosServiceImpl implements PosService {
             }
         }
 
+        String method = dto.getMethod() == null ? "CASH" : dto.getMethod().trim().toUpperCase();
+
+        if (!List.of("CASH", "BANKING").contains(method)) {
+            throw new RuntimeException("Phương thức thanh toán không hợp lệ");
+        }
+
         for (OrderDetail detail : details) {
             ProductColor productColor = productColorRepository.findById(detail.getProductColorID().getId())
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm"));
@@ -334,18 +340,20 @@ public class PosServiceImpl implements PosService {
 
         recalculateOrder(order);
 
-        if ("CASH".equalsIgnoreCase(dto.getMethod())) {
+        if ("CASH".equals(method)) {
             if (dto.getCashReceived() == null || dto.getCashReceived().compareTo(order.getTotalAmount()) < 0) {
                 throw new RuntimeException("Tiền khách đưa không đủ");
             }
         }
 
+        // Trừ kho để giữ hàng
         for (OrderDetail detail : details) {
             ProductColor productColor = detail.getProductColorID();
             productColor.setStockQuantity(productColor.getStockQuantity() - detail.getQuantity());
             productColorRepository.save(productColor);
         }
 
+        // Trừ lượt coupon
         if (order.getCouponID() != null && order.getCouponID().getQuantity() != null) {
             if (order.getCouponID().getQuantity() <= 0) {
                 throw new RuntimeException("Mã giảm giá đã hết lượt sử dụng");
@@ -354,14 +362,21 @@ public class PosServiceImpl implements PosService {
             discountCouponRepository.save(order.getCouponID());
         }
 
-        order.setStatus("Completed");
-        orderRepository.save(order);
-
         Payment payment = new Payment();
         payment.setOrderID(order);
         payment.setAmount(order.getTotalAmount());
-        payment.setMethod(dto.getMethod());
-        payment.setStatus("SUCCESS");
+        payment.setMethod(method);
+
+        if ("CASH".equals(method)) {
+            order.setStatus("Completed");
+            payment.setStatus("SUCCESS");
+        } else {
+            // BANKING: tạo yêu cầu chuyển khoản, chưa xác nhận là đã thanh toán
+            order.setStatus("PENDING_PAYMENT");
+            payment.setStatus("UNPAID");
+        }
+
+        orderRepository.save(order);
         paymentRepository.save(payment);
 
         return getOrder(orderId, email);
@@ -588,6 +603,8 @@ public class PosServiceImpl implements PosService {
 
         BigDecimal discount = calculateDiscount(order, subtotal);
 
+        Payment latestPayment = paymentRepository.findTopByOrderIDOrderByIdDesc(order).orElse(null);
+
         PosOrderGetDto dto = new PosOrderGetDto();
         dto.setOrderId(order.getId());
         dto.setOrderDate(order.getOrderDate());
@@ -608,6 +625,9 @@ public class PosServiceImpl implements PosService {
         dto.setSubtotal(subtotal);
         dto.setDiscountAmount(discount);
         dto.setTotalAmount(order.getTotalAmount());
+
+        dto.setPaymentMethod(latestPayment != null ? normalizePosPaymentMethod(latestPayment.getMethod()) : null);
+        dto.setPaymentStatus(latestPayment != null ? normalizePosPaymentStatus(latestPayment.getStatus()) : null);
 
         dto.setItems(details.stream().map(this::mapOrderItemDto).collect(Collectors.toList()));
         return dto;
@@ -809,5 +829,28 @@ public class PosServiceImpl implements PosService {
                 discountType,
                 discountLabel
         );
+    }
+
+    private String normalizePosPaymentMethod(String method) {
+        if (!StringUtils.hasText(method)) return null;
+
+        String normalized = method.trim().toUpperCase();
+        return switch (normalized) {
+            case "CASH", "COD" -> "CASH";
+            case "BANKING", "BANK", "TRANSFER", "BANK_TRANSFER", "MB", "MBBANK", "MB BANK" -> "BANKING";
+            default -> normalized;
+        };
+    }
+
+    private String normalizePosPaymentStatus(String status) {
+        if (!StringUtils.hasText(status)) return null;
+
+        String normalized = status.trim().toUpperCase();
+        return switch (normalized) {
+            case "SUCCESS", "PAID" -> "PAID";
+            case "UNPAID", "PENDING", "PENDING_PAYMENT" -> "UNPAID";
+            case "CANCELLED", "CANCELED" -> "CANCELLED";
+            default -> normalized;
+        };
     }
 }
