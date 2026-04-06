@@ -6,16 +6,17 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
-import java.util.List;
 
 @NoArgsConstructor
 @AllArgsConstructor
 @Setter
 @Getter
-public class CheckoutRequest {
-    private Integer accountId;
-    private String method;
-    private List<Integer> cartItemIds;
-    private String couponCode;
-    private BigDecimal shippingFee;
+public class GhnShippingFeeRequest {
+    private Integer toDistrictId;
+    private String toWardCode;
+    private Integer weight;
+    private Integer length;
+    private Integer width;
+    private Integer height;
+    private BigDecimal insuranceValue;
 }

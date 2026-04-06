@@ -106,23 +106,59 @@ public class PosServiceImpl implements PosService {
         order.setTotalAmount(BigDecimal.ZERO);
 
         order = orderRepository.save(order);
-        return getOrder(order.getId());
+        return getOrder(order.getId(), email);
     }
 
     @Override
-    public PosOrderGetDto getOrder(Integer orderId) {
-        Order order = getOrderEntity(orderId);
+    public PosOrderGetDto getOrder(Integer orderId, String email) {
+        Order order = getOwnedOfflineOrder(orderId, email);
         return mapOrderDto(order);
     }
 
     @Override
     @Transactional
-    public PosOrderGetDto addItem(Integer orderId, PostOfflineOrderItemDto dto) {
+    public PosOrderGetDto updateOrderInfo(Integer orderId, PutOfflineOrderInfoDto dto, String email) {
+        Order order = getPendingOrder(orderId, email);
+
+        Account customer = null;
+        if (dto.getAccountId() != null) {
+            customer = accountRepository.findById(dto.getAccountId())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng"));
+        }
+
+        order.setAccountID(customer);
+
+        if (customer != null) {
+            order.setCustomerName(
+                    StringUtils.hasText(dto.getCustomerName())
+                            ? dto.getCustomerName()
+                            : customer.getUsername()
+            );
+            order.setCustomerPhone(
+                    StringUtils.hasText(dto.getCustomerPhone())
+                            ? dto.getCustomerPhone()
+                            : customer.getPhoneNumber()
+            );
+        } else {
+            order.setCustomerName(StringUtils.hasText(dto.getCustomerName()) ? dto.getCustomerName() : null);
+            order.setCustomerPhone(StringUtils.hasText(dto.getCustomerPhone()) ? dto.getCustomerPhone() : null);
+        }
+
+        order.setNote(dto.getNote());
+        order.setShippingAddress(dto.getShippingAddress());
+
+        orderRepository.save(order);
+        return getOrder(orderId, email);
+    }
+
+    @Override
+    @Transactional
+    public PosOrderGetDto addItem(Integer orderId, PostOfflineOrderItemDto dto, String email) {
         if (dto.getQuantity() == null || dto.getQuantity() <= 0) {
             throw new RuntimeException("Số lượng phải lớn hơn 0");
         }
 
-        Order order = getPendingOrder(orderId);
+        Order order = getPendingOrder(orderId, email);
 
         ProductColor productColor = productColorRepository.findById(dto.getProductColorId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm"));
@@ -153,9 +189,6 @@ public class PosServiceImpl implements PosService {
                 throw new RuntimeException("Số lượng vượt quá tồn kho");
             }
             detail.setQuantity(newQuantity);
-
-            // giữ giá hiện tại trong đơn theo thời điểm thêm/sửa
-            // nếu bạn muốn luôn đồng bộ lại giá mới nhất thì bỏ comment dòng dưới
             detail.setPrice(priceData.getFinalPrice());
         }
 
@@ -167,53 +200,17 @@ public class PosServiceImpl implements PosService {
         recalculateOrder(order);
         orderRepository.save(order);
 
-        return getOrder(orderId);
+        return getOrder(orderId, email);
     }
 
     @Override
     @Transactional
-    public PosOrderGetDto updateOrderInfo(Integer orderId, PutOfflineOrderInfoDto dto) {
-        Order order = getPendingOrder(orderId);
-
-        Account customer = null;
-        if (dto.getAccountId() != null) {
-            customer = accountRepository.findById(dto.getAccountId())
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng"));
-        }
-
-        order.setAccountID(customer);
-
-        if (customer != null) {
-            order.setCustomerName(
-                    StringUtils.hasText(dto.getCustomerName())
-                            ? dto.getCustomerName()
-                            : customer.getUsername()
-            );
-            order.setCustomerPhone(
-                    StringUtils.hasText(dto.getCustomerPhone())
-                            ? dto.getCustomerPhone()
-                            : customer.getPhoneNumber()
-            );
-        } else {
-            order.setCustomerName(StringUtils.hasText(dto.getCustomerName()) ? dto.getCustomerName() : null);
-            order.setCustomerPhone(StringUtils.hasText(dto.getCustomerPhone()) ? dto.getCustomerPhone() : null);
-        }
-
-        order.setNote(dto.getNote());
-        order.setShippingAddress(dto.getShippingAddress());
-
-        orderRepository.save(order);
-        return getOrder(orderId);
-    }
-
-    @Override
-    @Transactional
-    public PosOrderGetDto updateItem(Integer orderId, Integer orderDetailId, PutOfflineOrderItemDto dto) {
+    public PosOrderGetDto updateItem(Integer orderId, Integer orderDetailId, PutOfflineOrderItemDto dto, String email) {
         if (dto.getQuantity() == null || dto.getQuantity() <= 0) {
             throw new RuntimeException("Số lượng phải lớn hơn 0");
         }
 
-        Order order = getPendingOrder(orderId);
+        Order order = getPendingOrder(orderId, email);
 
         OrderDetail detail = orderDetailRepository.findById(orderDetailId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy dòng sản phẩm"));
@@ -233,13 +230,13 @@ public class PosServiceImpl implements PosService {
         recalculateOrder(order);
         orderRepository.save(order);
 
-        return getOrder(orderId);
+        return getOrder(orderId, email);
     }
 
     @Override
     @Transactional
-    public PosOrderGetDto removeItem(Integer orderId, Integer orderDetailId) {
-        Order order = getPendingOrder(orderId);
+    public PosOrderGetDto removeItem(Integer orderId, Integer orderDetailId, String email) {
+        Order order = getPendingOrder(orderId, email);
 
         OrderDetail detail = orderDetailRepository.findById(orderDetailId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy dòng sản phẩm"));
@@ -253,19 +250,19 @@ public class PosServiceImpl implements PosService {
         recalculateOrder(order);
         orderRepository.save(order);
 
-        return getOrder(orderId);
+        return getOrder(orderId, email);
     }
 
     @Override
     @Transactional
-    public PosOrderGetDto applyCoupon(Integer orderId, PostApplyCouponDto dto) {
-        Order order = getPendingOrder(orderId);
+    public PosOrderGetDto applyCoupon(Integer orderId, PostApplyCouponDto dto, String email) {
+        Order order = getPendingOrder(orderId, email);
 
         if (!StringUtils.hasText(dto.getCouponCode())) {
             order.setCouponID(null);
             recalculateOrder(order);
             orderRepository.save(order);
-            return getOrder(orderId);
+            return getOrder(orderId, email);
         }
 
         DiscountCoupon coupon = discountCouponRepository.findByCouponCodeIgnoreCase(dto.getCouponCode().trim())
@@ -278,13 +275,35 @@ public class PosServiceImpl implements PosService {
         recalculateOrder(order);
         orderRepository.save(order);
 
-        return getOrder(orderId);
+        return getOrder(orderId, email);
+    }
+
+    @Override
+    public List<PosPromotionGetDto> getAvailablePromotions(Integer orderId, String email) {
+        Order order = getOwnedOfflineOrder(orderId, email);
+        BigDecimal subtotal = calculateSubtotal(order);
+        LocalDate today = LocalDate.now();
+
+        return discountCouponRepository.findAvailableForPos(today)
+                .stream()
+                .map(coupon -> mapPromotionDto(coupon, order, subtotal))
+                .sorted(
+                        Comparator.comparing(PosPromotionGetDto::isEligible).reversed()
+                                .thenComparing(
+                                        PosPromotionGetDto::getEstimatedDiscount,
+                                        Comparator.nullsLast(Comparator.reverseOrder())
+                                )
+                                .thenComparing(
+                                        dto -> dto.getMinOrderValue() == null ? BigDecimal.ZERO : dto.getMinOrderValue()
+                                )
+                )
+                .collect(Collectors.toList());
     }
 
     @Override
     @Transactional
-    public PosOrderGetDto checkout(Integer orderId, PostCheckoutOrderDto dto) {
-        Order order = getPendingOrder(orderId);
+    public PosOrderGetDto checkout(Integer orderId, PostCheckoutOrderDto dto, String email) {
+        Order order = getPendingOrder(orderId, email);
 
         List<OrderDetail> details = orderDetailRepository.findByOrderID_Id(orderId);
         if (details.isEmpty()) {
@@ -311,10 +330,6 @@ public class PosServiceImpl implements PosService {
             if (productColor.getStockQuantity() == null || productColor.getStockQuantity() < detail.getQuantity()) {
                 throw new RuntimeException("Tồn kho không đủ cho sản phẩm: " + productColor.getProductID().getProductName());
             }
-        }
-
-        if (order.getCouponID() != null) {
-            validateCoupon(order.getCouponID(), calculateSubtotal(order));
         }
 
         recalculateOrder(order);
@@ -349,7 +364,7 @@ public class PosServiceImpl implements PosService {
         payment.setStatus("SUCCESS");
         paymentRepository.save(payment);
 
-        return getOrder(orderId);
+        return getOrder(orderId, email);
     }
 
     @Override
@@ -374,16 +389,26 @@ public class PosServiceImpl implements PosService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên đăng nhập"));
     }
 
-    private Order getOrderEntity(Integer orderId) {
-        return orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng"));
+    private Order getOwnedOfflineOrder(Integer orderId, String email) {
+        Account employee = getCurrentEmployee(email);
+
+        Order order = orderRepository.findByIdAndEmployeeID_Id(orderId, employee.getId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng của nhân viên hiện tại"));
+
+        if (!"OFFLINE".equalsIgnoreCase(order.getOrderType())) {
+            throw new RuntimeException("Chỉ thao tác được với đơn OFFLINE");
+        }
+
+        return order;
     }
 
-    private Order getPendingOrder(Integer orderId) {
-        Order order = getOrderEntity(orderId);
+    private Order getPendingOrder(Integer orderId, String email) {
+        Order order = getOwnedOfflineOrder(orderId, email);
+
         if (!"Pending".equalsIgnoreCase(order.getStatus())) {
             throw new RuntimeException("Chỉ thao tác được với đơn Pending");
         }
+
         return order;
     }
 
@@ -394,9 +419,8 @@ public class PosServiceImpl implements PosService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    private BigDecimal calculateDiscount(Order order, BigDecimal subtotal) {
-        DiscountCoupon coupon = order.getCouponID();
-        if (coupon == null) {
+    private BigDecimal calculateCouponDiscount(DiscountCoupon coupon, BigDecimal subtotal) {
+        if (coupon == null || subtotal == null || subtotal.compareTo(BigDecimal.ZERO) <= 0) {
             return BigDecimal.ZERO;
         }
 
@@ -405,6 +429,7 @@ public class PosServiceImpl implements PosService {
         }
 
         BigDecimal discount = BigDecimal.ZERO;
+
         if ("percent".equalsIgnoreCase(coupon.getDiscountType())) {
             discount = subtotal.multiply(coupon.getDiscountValue()).divide(BigDecimal.valueOf(100));
         } else if ("fixed".equalsIgnoreCase(coupon.getDiscountType())) {
@@ -424,8 +449,24 @@ public class PosServiceImpl implements PosService {
         return discount;
     }
 
+    private BigDecimal calculateDiscount(Order order, BigDecimal subtotal) {
+        if (order.getCouponID() == null) {
+            return BigDecimal.ZERO;
+        }
+        return calculateCouponDiscount(order.getCouponID(), subtotal);
+    }
+
+    private void normalizeCoupon(Order order, BigDecimal subtotal) {
+        if (order.getCouponID() != null && !isCouponValid(order.getCouponID(), subtotal)) {
+            order.setCouponID(null);
+        }
+    }
+
     private void recalculateOrder(Order order) {
         BigDecimal subtotal = calculateSubtotal(order);
+
+        normalizeCoupon(order, subtotal);
+
         BigDecimal discount = calculateDiscount(order, subtotal);
         BigDecimal total = subtotal.subtract(discount);
 
@@ -464,6 +505,33 @@ public class PosServiceImpl implements PosService {
         }
     }
 
+    private PosPromotionGetDto mapPromotionDto(DiscountCoupon coupon, Order order, BigDecimal subtotal) {
+        PosPromotionGetDto dto = new PosPromotionGetDto();
+
+        boolean eligible = isCouponValid(coupon, subtotal);
+        BigDecimal missingAmount = BigDecimal.ZERO;
+
+        if (coupon.getMinOrderValue() != null && subtotal.compareTo(coupon.getMinOrderValue()) < 0) {
+            missingAmount = coupon.getMinOrderValue().subtract(subtotal);
+        }
+
+        dto.setCouponId(coupon.getId());
+        dto.setCouponCode(coupon.getCouponCode());
+        dto.setName(coupon.getName());
+        dto.setDescription(coupon.getDescription());
+        dto.setDiscountType(coupon.getDiscountType());
+        dto.setDiscountValue(coupon.getDiscountValue());
+        dto.setMinOrderValue(coupon.getMinOrderValue());
+        dto.setMaxDiscountValue(coupon.getMaxDiscountValue());
+
+        dto.setEligible(eligible);
+        dto.setApplied(order.getCouponID() != null && order.getCouponID().getId().equals(coupon.getId()));
+        dto.setEstimatedDiscount(eligible ? calculateCouponDiscount(coupon, subtotal) : BigDecimal.ZERO);
+        dto.setMissingAmount(missingAmount);
+
+        return dto;
+    }
+
     private PosProductColorGetDto mapProductColorDto(ProductColor pc) {
         ProductPriceData priceData = resolveProductPrice(pc);
 
@@ -481,9 +549,7 @@ public class PosServiceImpl implements PosService {
         dto.setDiscountType(priceData.getDiscountType());
         dto.setDiscountLabel(priceData.getDiscountLabel());
 
-        // tương thích frontend cũ
         dto.setPrice(priceData.getFinalPrice());
-
         dto.setStockQuantity(pc.getStockQuantity());
 
         dto.setDisplayName(
@@ -656,7 +722,7 @@ public class PosServiceImpl implements PosService {
             );
         }
 
-        ProductPriceData bestPrice = activeDiscounts.stream()
+        return activeDiscounts.stream()
                 .map(discount -> calculateDiscountedPrice(originalPrice, discount))
                 .min(Comparator.comparing(ProductPriceData::getFinalPrice))
                 .orElse(new ProductPriceData(
@@ -668,8 +734,6 @@ public class PosServiceImpl implements PosService {
                         null,
                         null
                 ));
-
-        return bestPrice;
     }
 
     private ProductPriceData calculateDiscountedPrice(BigDecimal originalPrice, ProductDiscount discount) {

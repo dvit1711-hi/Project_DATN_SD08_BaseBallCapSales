@@ -17,19 +17,21 @@ public interface PosService {
 
     PosOrderGetDto createOfflineOrder(PostOfflineOrderDto dto, String email);
 
-    PosOrderGetDto getOrder(Integer orderId);
+    PosOrderGetDto getOrder(Integer orderId, String email);
 
-    PosOrderGetDto updateOrderInfo(Integer orderId, PutOfflineOrderInfoDto dto);
+    PosOrderGetDto updateOrderInfo(Integer orderId, PutOfflineOrderInfoDto dto, String email);
 
-    PosOrderGetDto addItem(Integer orderId, PostOfflineOrderItemDto dto);
+    PosOrderGetDto addItem(Integer orderId, PostOfflineOrderItemDto dto, String email);
 
-    PosOrderGetDto updateItem(Integer orderId, Integer orderDetailId, PutOfflineOrderItemDto dto);
+    PosOrderGetDto updateItem(Integer orderId, Integer orderDetailId, PutOfflineOrderItemDto dto, String email);
 
-    PosOrderGetDto removeItem(Integer orderId, Integer orderDetailId);
+    PosOrderGetDto removeItem(Integer orderId, Integer orderDetailId, String email);
 
-    PosOrderGetDto applyCoupon(Integer orderId, PostApplyCouponDto dto);
+    PosOrderGetDto applyCoupon(Integer orderId, PostApplyCouponDto dto, String email);
 
-    PosOrderGetDto checkout(Integer orderId, PostCheckoutOrderDto dto);
+    List<PosPromotionGetDto> getAvailablePromotions(Integer orderId, String email);
+
+    PosOrderGetDto checkout(Integer orderId, PostCheckoutOrderDto dto, String email);
 
     void cancelPendingOrder(Integer orderId, String email);
 }

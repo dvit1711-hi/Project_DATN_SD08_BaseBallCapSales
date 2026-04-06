@@ -6,6 +6,7 @@ import com.example.project_datn_sd08_baseballcapsales.Model.entity.Payment;
 import com.example.project_datn_sd08_baseballcapsales.Service.PaymentService;
 import com.example.project_datn_sd08_baseballcapsales.payload.reponse.MBBankPaymentInfoResponse;
 import com.example.project_datn_sd08_baseballcapsales.payload.request.CheckoutRequest;
+import com.example.project_datn_sd08_baseballcapsales.payload.request.GhnShippingFeeRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -38,8 +39,36 @@ public class PaymentController {
 
     @PostMapping("/checkout/selected")
     public ResponseEntity<Map<String, Object>> checkoutSelected(@RequestBody CheckoutRequest request) {
-        Order order = paymentService.checkout(request.getAccountId(), request.getMethod(), request.getCartItemIds(), request.getCouponCode());
+        Order order = paymentService.checkout(
+                request.getAccountId(),
+                request.getMethod(),
+                request.getCartItemIds(),
+                request.getCouponCode(),
+                request.getShippingFee()
+        );
         return ResponseEntity.ok(buildCheckoutResponse(order));
+    }
+
+    @PostMapping("/shipping-fee/ghn")
+    public ResponseEntity<Map<String, Object>> calculateGhnShippingFee(@RequestBody GhnShippingFeeRequest request) {
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("shippingFee", paymentService.calculateShippingFeeByGhn(request));
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/ghn/provinces")
+    public ResponseEntity<List<Map<String, Object>>> getGhnProvinces() {
+        return ResponseEntity.ok(paymentService.getGhnProvinces());
+    }
+
+    @GetMapping("/ghn/districts")
+    public ResponseEntity<List<Map<String, Object>>> getGhnDistricts(@RequestParam Integer provinceId) {
+        return ResponseEntity.ok(paymentService.getGhnDistricts(provinceId));
+    }
+
+    @GetMapping("/ghn/wards")
+    public ResponseEntity<List<Map<String, Object>>> getGhnWards(@RequestParam Integer districtId) {
+        return ResponseEntity.ok(paymentService.getGhnWards(districtId));
     }
 
     @GetMapping("/account/{accountId}/orders")

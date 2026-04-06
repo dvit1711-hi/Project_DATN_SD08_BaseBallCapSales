@@ -37,21 +37,24 @@ public class SecurityConfig {
                                 "/auth/register/**",
                                 "/auth/forgot-password/**",
                                 "/css/**",
-                                "/images/**"
+                                "/images/**",
+                                "/api/**"
                         ).permitAll()
 
-                        // POS API: admin + staff dùng được
-//                        .requestMatchers("/api/pos/**").hasAnyRole("ADMIN", "STAFF")
+                        // POS chỉ staff/admin
+                        .requestMatchers("/api/pos/**").hasAnyRole("ADMIN", "STAFF")
 
                         // account API: chỉ cần đăng nhập
                         .requestMatchers("/api/account/**").authenticated()
 
-                        // nếu bạn có backend endpoint riêng cho admin/user thì giữ
+                        // admin/user route backend
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/user/**").hasAnyRole("USER", "ADMIN", "STAFF")
 
-                        // api public còn lại của shop
-                        .requestMatchers("/api/**").permitAll()
+                        // nếu có API public khác thì khai báo rõ từng nhóm ở đây
+                        // ví dụ:
+                        // .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
+                        // .requestMatchers(HttpMethod.GET, "/api/brands/**").permitAll()
 
                         .anyRequest().authenticated()
                 )

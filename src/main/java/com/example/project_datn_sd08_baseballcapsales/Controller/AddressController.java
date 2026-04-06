@@ -28,6 +28,11 @@ public class AddressController {
         return addressService.getAddressById(id);
     }
 
+    @GetMapping("/account/{accountId}")
+    public List<GetAddressDto> getAddressesByAccountId(@PathVariable int accountId) {
+        return addressService.getAddressesByAccountId(accountId);
+    }
+
     @PostMapping
     public ResponseEntity<Address> postProduct(@Valid @RequestBody PostAddressDto dto){
         Address address =addressService.postAddress(dto);
