@@ -22,6 +22,8 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -65,6 +67,7 @@ public class PaymentService {
     private ProductDiscountService productDiscountService;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private static final DateTimeFormatter REVERT_REASON_TIME_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
 
     @Value("${mbbank.bank-code:MB}")
     private String mbBankCode;
@@ -451,7 +454,7 @@ public class PaymentService {
         }
 
         payment.setStatus("PAID");
-        order.setStatus("PAID");
+        order.setStatus("SHIPPING");
         orderRepository.save(order);
         return paymentRepository.save(payment);
     }
@@ -473,6 +476,211 @@ public class PaymentService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng"));
         return cancelOrderInternal(order, false);
+    }
+
+    @Transactional
+    public Order revertOrderStatusByAdmin(Integer orderId, String reason) {
+        String normalizedReason = reason == null ? "" : reason.trim();
+        if (normalizedReason.isEmpty()) {
+            throw new RuntimeException("Vui lòng nhập lý do khi quay lại trạng thái");
+        }
+
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng"));
+
+        appendRevertReason(order, normalizedReason);
+
+        Payment payment = paymentRepository.findTopByOrderIDOrderByIdDesc(order).orElse(null);
+
+        String currentOrderStatus = normalizeOrderStatus(order.getStatus());
+        String currentPaymentStatus = payment != null
+            ? normalizePaymentStatus(payment.getStatus())
+            : "UNKNOWN";
+
+        boolean isPending = "PENDING_PAYMENT".equals(currentOrderStatus)
+            && ("UNPAID".equals(currentPaymentStatus) || "UNKNOWN".equals(currentPaymentStatus));
+        if (isPending) {
+            throw new RuntimeException("Đơn hàng đang ở trạng thái ban đầu, không thể quay lại thêm");
+        }
+
+        if ("PAID".equals(currentOrderStatus) || "PAID".equals(currentPaymentStatus)) {
+            String paymentMethod = payment != null
+                    ? normalizePaymentMethod(payment.getMethod())
+                    : "";
+
+            // COD flow: previous step before completed is transfer confirmation,
+            // so keep order in SHIPPING and only rollback payment status.
+            if ("COD".equals(paymentMethod)
+                    && ("SHIPPING".equals(currentOrderStatus) || "PAID".equals(currentOrderStatus))) {
+                if (payment != null) {
+                    payment.setStatus("UNPAID");
+                    paymentRepository.save(payment);
+                }
+                order.setStatus("SHIPPING");
+                orderRepository.save(order);
+                return order;
+            }
+
+            // Online flow: rollback from completed back to the shipping state,
+            // so the admin can confirm delivery again and then complete it.
+            if ("COD".equals(paymentMethod) == false) {
+                if (payment != null && !"PAID".equals(currentPaymentStatus)) {
+                    payment.setStatus("PAID");
+                    paymentRepository.save(payment);
+                }
+                order.setStatus("SHIPPING");
+                orderRepository.save(order);
+                return order;
+            }
+
+            if (payment != null) {
+            payment.setStatus("UNPAID");
+            paymentRepository.save(payment);
+            }
+            order.setStatus("PENDING_PAYMENT");
+            orderRepository.save(order);
+            return order;
+        }
+
+        if ("SHIPPING".equals(currentOrderStatus)) {
+            order.setStatus("PENDING_PAYMENT");
+            orderRepository.save(order);
+            return order;
+        }
+
+        if ("CANCELLED".equals(currentOrderStatus) || "CANCELLED".equals(currentPaymentStatus)) {
+            List<OrderDetail> details = orderDetailRepository.findByOrderID_Id(order.getId());
+            for (OrderDetail detail : details) {
+                ProductColor productColor = detail.getProductColorID();
+                if (productColor == null) {
+                    continue;
+                }
+
+                Integer currentStock = productColor.getStockQuantity() == null ? 0 : productColor.getStockQuantity();
+                Integer quantity = detail.getQuantity() == null ? 0 : detail.getQuantity();
+
+                if (currentStock < quantity) {
+                    String productName = productColor.getProductID() != null
+                            ? productColor.getProductID().getProductName()
+                            : "Sản phẩm";
+                    throw new RuntimeException("Không đủ tồn kho để khôi phục đơn: " + productName);
+                }
+
+                productColor.setStockQuantity(currentStock - quantity);
+                productColorRepository.save(productColor);
+            }
+
+            DiscountCoupon coupon = order.getCouponID();
+            if (coupon != null) {
+                Integer currentQuantity = coupon.getQuantity() == null ? 0 : coupon.getQuantity();
+                if (currentQuantity <= 0) {
+                    throw new RuntimeException("Không đủ lượt mã giảm giá để khôi phục đơn");
+                }
+                coupon.setQuantity(currentQuantity - 1);
+                discountCouponRepository.save(coupon);
+            }
+
+            if (payment != null) {
+                payment.setStatus("UNPAID");
+                paymentRepository.save(payment);
+            }
+            order.setStatus("PENDING_PAYMENT");
+            orderRepository.save(order);
+            return order;
+        }
+
+        throw new RuntimeException("Trạng thái hiện tại không hỗ trợ quay lại");
+    }
+
+    private void appendRevertReason(Order order, String reason) {
+        String currentNote = order.getNote() == null ? "" : order.getNote().trim();
+        String timeText = LocalDateTime.now().format(REVERT_REASON_TIME_FORMAT);
+        String line = "[REVERT " + timeText + "] " + reason;
+
+        if (currentNote.isEmpty()) {
+            order.setNote(line);
+            return;
+        }
+
+        String combined = currentNote + "\n" + line;
+        if (combined.length() > 500) {
+            combined = combined.substring(combined.length() - 500);
+        }
+        order.setNote(combined);
+    }
+
+    @Transactional
+    public Order startShippingByAdmin(Integer orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng"));
+
+        Payment payment = paymentRepository.findTopByOrderIDOrderByIdDesc(order)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy thanh toán của đơn hàng"));
+
+        String currentOrderStatus = normalizeOrderStatus(order.getStatus());
+        String currentPaymentStatus = normalizePaymentStatus(payment.getStatus());
+
+        if ("CANCELLED".equals(currentOrderStatus) || "CANCELLED".equals(currentPaymentStatus)) {
+            throw new RuntimeException("Không thể bắt đầu giao hàng cho đơn đã hủy");
+        }
+
+        if ("PAID".equals(currentOrderStatus)) {
+            throw new RuntimeException("Đơn hàng đã hoàn tất");
+        }
+
+        if ("SHIPPING".equals(currentOrderStatus)) {
+            return order;
+        }
+
+        if (!"PENDING_PAYMENT".equals(currentOrderStatus)) {
+            throw new RuntimeException("Trạng thái đơn hàng không hợp lệ để bắt đầu giao");
+        }
+
+        order.setStatus("SHIPPING");
+        return orderRepository.save(order);
+    }
+
+    @Transactional
+    public Order completeDeliveryByAdmin(Integer orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng"));
+
+        Payment payment = paymentRepository.findTopByOrderIDOrderByIdDesc(order)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy thanh toán của đơn hàng"));
+
+        String currentOrderStatus = normalizeOrderStatus(order.getStatus());
+        String currentPaymentStatus = normalizePaymentStatus(payment.getStatus());
+
+        if ("CANCELLED".equals(currentOrderStatus) || "CANCELLED".equals(currentPaymentStatus)) {
+            throw new RuntimeException("Không thể hoàn tất giao hàng cho đơn đã hủy");
+        }
+
+        if ("PAID".equals(currentOrderStatus)) {
+            throw new RuntimeException("Đơn hàng đã hoàn tất trước đó");
+        }
+
+        if (!"SHIPPING".equals(currentOrderStatus)) {
+            throw new RuntimeException("Chỉ có thể hoàn tất khi đơn đang vận chuyển");
+        }
+
+        order.setStatus("PAID");
+        if (!"PAID".equals(currentPaymentStatus)) {
+            payment.setStatus("PAID");
+            paymentRepository.save(payment);
+        }
+
+        return orderRepository.save(order);
+    }
+
+    @Transactional
+    public String getLatestPaymentStatusForOrder(Integer orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng"));
+
+        return paymentRepository.findTopByOrderIDOrderByIdDesc(order)
+                .map(Payment::getStatus)
+                .map(this::normalizePaymentStatus)
+                .orElse("UNKNOWN");
     }
 
     private GetPaidOrderWithDetailsDto mapOrderToDetailsDto(Order order) {
@@ -661,7 +869,8 @@ public class PaymentService {
             case "COMPLETED" -> "PAID";
             case "CANCELED" -> "CANCELLED";
             case "PENDING" -> "PENDING_PAYMENT";
-            case "PENDING_PAYMENT", "PAID", "CANCELLED" -> normalized;
+            case "DELIVERING", "IN_TRANSIT" -> "SHIPPING";
+            case "PENDING_PAYMENT", "SHIPPING", "PAID", "CANCELLED" -> normalized;
             default -> normalized;
         };
     }
