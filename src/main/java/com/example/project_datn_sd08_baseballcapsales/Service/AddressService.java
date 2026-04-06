@@ -88,6 +88,13 @@ public class AddressService {
     }
 
     public Address getAddressByAccountId(int accountId) {
-        return addressRepository.findByAccount_Id(accountId);
+        return addressRepository.findTopByAccount_IdOrderByIdDesc(accountId);
+    }
+
+    public List<GetAddressDto> getAddressesByAccountId(int accountId) {
+        return addressRepository.findByAccount_IdOrderByIdDesc(accountId)
+                .stream()
+                .map(GetAddressDto::new)
+                .toList();
     }
 }

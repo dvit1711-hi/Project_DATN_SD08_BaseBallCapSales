@@ -61,7 +61,7 @@ public class ProductColorService {
             colorDto.setColorCode(pc.getColorID().getColorCode());
             colorDto.setStockQuantity(pc.getStockQuantity());
             colorDto.setPrice(pc.getPrice());
-            pc.getStatus();
+            colorDto.setStatus(pc.getStatus());
             colorDto.setSizeID(pc.getSizeID() != null ? pc.getSizeID().getSizeID() : null);
             colorDto.setSizeName(pc.getSizeID() != null ? pc.getSizeID().getSizeName() : null);
 
@@ -201,7 +201,9 @@ public class ProductColorService {
         pc.setColorID(color);
         pc.setSizeID(size);
         pc.setPrice(dto.getPrice());
-        pc.setStatus(dto.getStatus());
+        pc.setStatus(dto.getStatus() == null || dto.getStatus().isBlank()
+                ? "ACTIVE"
+                : dto.getStatus().trim());
         pc.setStockQuantity(dto.getStockQuantity() != null ? dto.getStockQuantity() : 0);
 
         return productColorRepository.save(pc);

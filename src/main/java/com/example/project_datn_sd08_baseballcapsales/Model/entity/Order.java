@@ -78,5 +78,8 @@ public class Order {
         if (this.orderDate == null) {
             this.orderDate = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
         }
+        if (this.orderType == null || this.orderType.trim().isEmpty()) {
+            this.orderType = "ONLINE";
+        }
     }
 }

@@ -1,5 +1,6 @@
 package com.example.project_datn_sd08_baseballcapsales.Model.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -20,11 +21,13 @@ public class Image {
     @Id
     @Column(name = "imageID", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @JsonIgnore
     private Integer id;
 
     @NotNull
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "productColorID", nullable = false)
+    @JsonIgnore
     private ProductColor productColorID;
 
     @Size(max = 255)

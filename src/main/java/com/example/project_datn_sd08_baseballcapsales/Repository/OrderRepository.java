@@ -25,8 +25,8 @@ public interface OrderRepository extends JpaRepository<Order, Integer> {
     );
 
     Optional<Order> findByIdAndEmployeeID_Id(Integer orderId, Integer employeeId);
-    
-    @Query("SELECT o FROM Order o WHERE o.accountID.id = :accountId AND EXISTS (SELECT p FROM Payment p WHERE p.orderID = o AND p.status = 'PAID')")
+
+    @Query("SELECT o FROM Order o WHERE o.accountID.id = :accountId AND EXISTS (SELECT p FROM Payment p WHERE p.orderID = o AND upper(p.status) IN ('PAID', 'SUCCESS'))")
     List<Order> findPaidOrdersByAccountId(@Param("accountId") Integer accountId);
 
     @Query("select coalesce(sum(o.totalAmount), 0) from Order o")

@@ -1,5 +1,7 @@
 package com.example.project_datn_sd08_baseballcapsales.Model.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -11,6 +13,7 @@ import org.hibernate.annotations.Nationalized;
 import java.util.List;
 
 @Entity
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Table(name = "Sizes")
 @NoArgsConstructor
 @AllArgsConstructor
@@ -38,5 +41,6 @@ public class SizeEntity {
     private String status;
 
     @OneToMany(mappedBy = "sizeID")
+    @JsonIgnore
     private List<ProductColor> productColors;
 }

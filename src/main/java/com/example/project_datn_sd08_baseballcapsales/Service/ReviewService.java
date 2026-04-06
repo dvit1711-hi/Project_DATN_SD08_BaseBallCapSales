@@ -139,7 +139,7 @@ public class ReviewService {
     public List<GetPaidOrderWithDetailsDto> getPaidOrdersWithDetailsForAccount(Integer accountId) {
         List<Order> paidOrders = orderRepository.findPaidOrdersByAccountId(accountId);
         return paidOrders.stream().map(order -> {
-            var payment = paymentRepository.findByOrderID(order);
+            var payment = paymentRepository.findTopByOrderIDOrderByIdDesc(order);
             String paymentStatus = payment.map(Payment::getStatus).orElse("UNKNOWN");
             String paymentMethod = payment.map(Payment::getMethod).orElse("UNKNOWN");
             var orderDetails = orderDetailRepository.findByOrderID_Id(order.getId());

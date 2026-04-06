@@ -4,12 +4,16 @@ import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetPaidOr
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Order;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Payment;
 import com.example.project_datn_sd08_baseballcapsales.Service.PaymentService;
+import com.example.project_datn_sd08_baseballcapsales.payload.reponse.MBBankPaymentInfoResponse;
 import com.example.project_datn_sd08_baseballcapsales.payload.request.CheckoutRequest;
+import com.example.project_datn_sd08_baseballcapsales.payload.request.GhnShippingFeeRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/payment")
@@ -19,21 +23,52 @@ public class PaymentController {
     private PaymentService paymentService;
 
     @PostMapping("/checkout/cod")
-    public Order checkoutCOD(@RequestParam Integer accountId) {
-        return paymentService.checkoutCOD(accountId);
+    public ResponseEntity<Map<String, Object>> checkoutCOD(@RequestParam Integer accountId) {
+        Order order = paymentService.checkoutCOD(accountId);
+        return ResponseEntity.ok(buildCheckoutResponse(order));
     }
 
     @PostMapping("/checkout")
-    public Order checkout(
+    public ResponseEntity<Map<String, Object>> checkout(
             @RequestParam Integer accountId,
             @RequestParam(defaultValue = "COD") String method
     ) {
-        return paymentService.checkout(accountId, method);
+        Order order = paymentService.checkout(accountId, method);
+        return ResponseEntity.ok(buildCheckoutResponse(order));
     }
 
     @PostMapping("/checkout/selected")
-    public Order checkoutSelected(@RequestBody CheckoutRequest request) {
-        return paymentService.checkout(request.getAccountId(), request.getMethod(), request.getCartItemIds(), request.getCouponCode());
+    public ResponseEntity<Map<String, Object>> checkoutSelected(@RequestBody CheckoutRequest request) {
+        Order order = paymentService.checkout(
+                request.getAccountId(),
+                request.getMethod(),
+                request.getCartItemIds(),
+                request.getCouponCode(),
+                request.getShippingFee()
+        );
+        return ResponseEntity.ok(buildCheckoutResponse(order));
+    }
+
+    @PostMapping("/shipping-fee/ghn")
+    public ResponseEntity<Map<String, Object>> calculateGhnShippingFee(@RequestBody GhnShippingFeeRequest request) {
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("shippingFee", paymentService.calculateShippingFeeByGhn(request));
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/ghn/provinces")
+    public ResponseEntity<List<Map<String, Object>>> getGhnProvinces() {
+        return ResponseEntity.ok(paymentService.getGhnProvinces());
+    }
+
+    @GetMapping("/ghn/districts")
+    public ResponseEntity<List<Map<String, Object>>> getGhnDistricts(@RequestParam Integer provinceId) {
+        return ResponseEntity.ok(paymentService.getGhnDistricts(provinceId));
+    }
+
+    @GetMapping("/ghn/wards")
+    public ResponseEntity<List<Map<String, Object>>> getGhnWards(@RequestParam Integer districtId) {
+        return ResponseEntity.ok(paymentService.getGhnWards(districtId));
     }
 
     @GetMapping("/account/{accountId}/orders")
@@ -44,6 +79,11 @@ public class PaymentController {
     @GetMapping("/orders")
     public List<GetPaidOrderWithDetailsDto> getAllOrders() {
         return paymentService.getAllOrdersWithDetails();
+    }
+
+    @GetMapping("/orders/{orderId}/mb-bank-info")
+    public ResponseEntity<MBBankPaymentInfoResponse> getMBBankPaymentInfo(@PathVariable Integer orderId) {
+        return ResponseEntity.ok(paymentService.getMBBankPaymentInfo(orderId));
     }
 
     @PutMapping("/orders/{orderId}/confirm")
@@ -62,5 +102,14 @@ public class PaymentController {
     @PutMapping("/orders/{orderId}/cancel")
     public ResponseEntity<Order> cancelOrderByAdmin(@PathVariable Integer orderId) {
         return ResponseEntity.ok(paymentService.cancelOrderByAdmin(orderId));
+    }
+
+    private Map<String, Object> buildCheckoutResponse(Order order) {
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("orderId", order.getId());
+        response.put("id", order.getId());
+        response.put("status", order.getStatus());
+        response.put("totalAmount", order.getTotalAmount());
+        return response;
     }
 }

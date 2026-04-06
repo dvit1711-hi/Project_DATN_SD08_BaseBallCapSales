@@ -1,17 +1,33 @@
 package com.example.project_datn_sd08_baseballcapsales.Service;
 
+import com.example.project_datn_sd08_baseballcapsales.payload.request.GhnShippingFeeRequest;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetPaidOrderWithDetailsDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.*;
 import com.example.project_datn_sd08_baseballcapsales.Repository.*;
+import com.example.project_datn_sd08_baseballcapsales.payload.reponse.MBBankPaymentInfoResponse;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -48,6 +64,56 @@ public class PaymentService {
     @Autowired
     private ProductDiscountService productDiscountService;
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @Value("${mbbank.bank-code:MB}")
+    private String mbBankCode;
+
+    @Value("${mbbank.bank-name:MB Bank}")
+    private String mbBankName;
+
+    @Value("${mbbank.account-number:}")
+    private String mbBankAccountNumber;
+
+    @Value("${mbbank.account-name:}")
+    private String mbBankAccountName;
+
+    @Value("${mbbank.vietqr.base-url:https://img.vietqr.io/image}")
+    private String mbBankVietQrBaseUrl;
+
+    @Value("${mbbank.vietqr.bin:970422}")
+    private String mbBankVietQrBin;
+
+    @Value("${mbbank.vietqr.template:compact2}")
+    private String mbBankVietQrTemplate;
+
+    @Value("${ghn.api.base-url:https://online-gateway.ghn.vn/shiip/public-api}")
+    private String ghnApiBaseUrl;
+
+    @Value("${ghn.token:}")
+    private String ghnToken;
+
+    @Value("${ghn.shop-id:0}")
+    private Integer ghnShopId;
+
+    @Value("${ghn.from-district-id:0}")
+    private Integer ghnFromDistrictId;
+
+    @Value("${ghn.service-type-id:2}")
+    private Integer ghnServiceTypeId;
+
+    @Value("${ghn.default-weight:1000}")
+    private Integer ghnDefaultWeight;
+
+    @Value("${ghn.default-length:20}")
+    private Integer ghnDefaultLength;
+
+    @Value("${ghn.default-width:20}")
+    private Integer ghnDefaultWidth;
+
+    @Value("${ghn.default-height:10}")
+    private Integer ghnDefaultHeight;
+
     //    tien mat
     @Transactional
     public Order checkoutCOD(Integer accountId) {
@@ -61,11 +127,16 @@ public class PaymentService {
 
     @Transactional
     public Order checkout(Integer accountId, String method, List<Integer> selectedCartItemIds) {
-        return checkout(accountId, method, selectedCartItemIds, null);
+        return checkout(accountId, method, selectedCartItemIds, null, null);
     }
 
     @Transactional
     public Order checkout(Integer accountId, String method, List<Integer> selectedCartItemIds, String couponCode) {
+        return checkout(accountId, method, selectedCartItemIds, couponCode, null);
+    }
+
+    @Transactional
+    public Order checkout(Integer accountId, String method, List<Integer> selectedCartItemIds, String couponCode, BigDecimal shippingFee) {
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"));
         Cart cart = cartRepository.findByAccountID_Id(accountId)
@@ -101,8 +172,9 @@ public class PaymentService {
         BigDecimal subTotal = BigDecimal.ZERO;
         Order order = new Order();
         order.setAccountID(account);
+        order.setOrderType("ONLINE");
         order.setStatus("PENDING_PAYMENT");
-        Address address = addressRepository.findByAccount_Id(accountId);
+        Address address = addressRepository.findTopByAccount_IdOrderByIdDesc(accountId);
         order.setShippingAddress(formatAddressSnapshot(address));
         order = orderRepository.save(order);
         for (CartItem item : cartItems) {
@@ -150,11 +222,12 @@ public class PaymentService {
             order.setCouponID(appliedCoupon);
         }
 
-        BigDecimal total = subTotal.subtract(discountAmount).max(BigDecimal.ZERO);
+        BigDecimal safeShippingFee = shippingFee == null ? BigDecimal.ZERO : shippingFee.max(BigDecimal.ZERO);
+        BigDecimal total = subTotal.subtract(discountAmount).max(BigDecimal.ZERO).add(safeShippingFee);
         order.setTotalAmount(total);
         orderRepository.save(order);
 
-        String normalizedMethod = method == null ? "COD" : method.trim().toUpperCase();
+        String normalizedMethod = normalizePaymentMethod(method);
         if (!List.of("COD", "BANK_TRANSFER", "E_WALLET").contains(normalizedMethod)) {
             throw new RuntimeException("Phương thức thanh toán không hợp lệ");
         }
@@ -167,6 +240,144 @@ public class PaymentService {
         paymentRepository.save(payment);
         cartItemRepository.deleteAll(cartItems);
         return order;
+    }
+
+    public BigDecimal calculateShippingFeeByGhn(GhnShippingFeeRequest request) {
+        if (request == null) {
+            throw new RuntimeException("Thiếu dữ liệu tính phí GHN");
+        }
+
+        String token = safeTrim(ghnToken);
+        if (token.isEmpty() || ghnShopId == null || ghnShopId <= 0 || ghnFromDistrictId == null || ghnFromDistrictId <= 0) {
+            throw new RuntimeException("GHN chưa được cấu hình đầy đủ (token/shop-id/from-district-id)");
+        }
+
+        Integer toDistrictId = request.getToDistrictId();
+        String toWardCode = safeTrim(request.getToWardCode());
+        if (toDistrictId == null || toDistrictId <= 0) {
+            throw new RuntimeException("Thiếu mã quận/huyện GHN (toDistrictId)");
+        }
+        if (toWardCode.isEmpty()) {
+            throw new RuntimeException("Thiếu mã phường/xã GHN (toWardCode)");
+        }
+
+        int weight = normalizePositive(request.getWeight(), ghnDefaultWeight, 1000);
+        int length = normalizePositive(request.getLength(), ghnDefaultLength, 20);
+        int width = normalizePositive(request.getWidth(), ghnDefaultWidth, 20);
+        int height = normalizePositive(request.getHeight(), ghnDefaultHeight, 10);
+        long insuranceValue = (request.getInsuranceValue() == null ? BigDecimal.ZERO : request.getInsuranceValue().max(BigDecimal.ZERO))
+                .setScale(0, RoundingMode.HALF_UP)
+                .longValue();
+
+        String endpoint = trimTrailingSlash(safeTrim(ghnApiBaseUrl)) + "/v2/shipping-order/fee";
+
+        try {
+            ObjectNode bodyNode = objectMapper.createObjectNode();
+            bodyNode.put("service_type_id", normalizePositive(ghnServiceTypeId, 2, 2));
+            bodyNode.put("from_district_id", ghnFromDistrictId);
+            bodyNode.put("to_district_id", toDistrictId);
+            bodyNode.put("to_ward_code", toWardCode);
+            bodyNode.put("height", height);
+            bodyNode.put("length", length);
+            bodyNode.put("weight", weight);
+            bodyNode.put("width", width);
+            bodyNode.put("insurance_value", insuranceValue);
+
+            HttpRequest httpRequest = HttpRequest.newBuilder()
+                    .uri(URI.create(endpoint))
+                    .header("Content-Type", "application/json")
+                    .header("Token", token)
+                    .header("ShopId", String.valueOf(ghnShopId))
+                    .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(bodyNode)))
+                    .build();
+
+            HttpResponse<String> response = HttpClient.newHttpClient()
+                    .send(httpRequest, HttpResponse.BodyHandlers.ofString());
+
+            JsonNode rootNode = objectMapper.readTree(response.body());
+            int code = rootNode.path("code").asInt(-1);
+            if (response.statusCode() >= 400 || code != 200) {
+                String message = rootNode.path("message").asText("GHN không thể tính phí vận chuyển");
+                throw new RuntimeException(message);
+            }
+
+            long totalFee = rootNode.path("data").path("total").asLong(-1);
+            if (totalFee < 0) {
+                throw new RuntimeException("GHN trả về phí vận chuyển không hợp lệ");
+            }
+
+            return BigDecimal.valueOf(totalFee);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Yêu cầu tính phí GHN bị gián đoạn", ex);
+        } catch (RuntimeException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new RuntimeException("Không thể tính phí vận chuyển GHN", ex);
+        }
+    }
+
+    public List<Map<String, Object>> getGhnProvinces() {
+        JsonNode rootNode = callGhnMasterData("/master-data/province", null);
+        JsonNode dataNode = rootNode.path("data");
+        List<Map<String, Object>> provinces = new ArrayList<>();
+
+        if (dataNode.isArray()) {
+            for (JsonNode provinceNode : dataNode) {
+                Map<String, Object> item = new LinkedHashMap<>();
+                item.put("provinceId", provinceNode.path("ProvinceID").asInt(0));
+                item.put("provinceName", provinceNode.path("ProvinceName").asText(""));
+                provinces.add(item);
+            }
+        }
+
+        return provinces;
+    }
+
+    public List<Map<String, Object>> getGhnDistricts(Integer provinceId) {
+        if (provinceId == null || provinceId <= 0) {
+            throw new RuntimeException("Thiếu provinceId GHN hợp lệ");
+        }
+
+        ObjectNode bodyNode = objectMapper.createObjectNode();
+        bodyNode.put("province_id", provinceId);
+        JsonNode rootNode = callGhnMasterData("/master-data/district", bodyNode);
+        JsonNode dataNode = rootNode.path("data");
+        List<Map<String, Object>> districts = new ArrayList<>();
+
+        if (dataNode.isArray()) {
+            for (JsonNode districtNode : dataNode) {
+                Map<String, Object> item = new LinkedHashMap<>();
+                item.put("districtId", districtNode.path("DistrictID").asInt(0));
+                item.put("districtName", districtNode.path("DistrictName").asText(""));
+                districts.add(item);
+            }
+        }
+
+        return districts;
+    }
+
+    public List<Map<String, Object>> getGhnWards(Integer districtId) {
+        if (districtId == null || districtId <= 0) {
+            throw new RuntimeException("Thiếu districtId GHN hợp lệ");
+        }
+
+        ObjectNode bodyNode = objectMapper.createObjectNode();
+        bodyNode.put("district_id", districtId);
+        JsonNode rootNode = callGhnMasterData("/master-data/ward", bodyNode);
+        JsonNode dataNode = rootNode.path("data");
+        List<Map<String, Object>> wards = new ArrayList<>();
+
+        if (dataNode.isArray()) {
+            for (JsonNode wardNode : dataNode) {
+                Map<String, Object> item = new LinkedHashMap<>();
+                item.put("wardCode", wardNode.path("WardCode").asText(""));
+                item.put("wardName", wardNode.path("WardName").asText(""));
+                wards.add(item);
+            }
+        }
+
+        return wards;
     }
 
     public List<GetPaidOrderWithDetailsDto> getOrdersWithDetailsForAccount(Integer accountId) {
@@ -183,13 +394,61 @@ public class PaymentService {
                 .toList();
     }
 
+    public MBBankPaymentInfoResponse getMBBankPaymentInfo(Integer orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng"));
+
+        Payment payment = paymentRepository.findTopByOrderIDOrderByIdDesc(order)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy thanh toán của đơn hàng"));
+
+        String paymentMethod = normalizePaymentMethod(payment.getMethod());
+        if (!"BANK_TRANSFER".equals(paymentMethod)) {
+            throw new RuntimeException("Đơn hàng này không sử dụng phương thức chuyển khoản ngân hàng");
+        }
+
+        String accountNo = safeTrim(mbBankAccountNumber);
+        String accountName = safeTrim(mbBankAccountName);
+        if (accountNo.isEmpty() || accountName.isEmpty()) {
+            throw new RuntimeException("MB Bank chưa được cấu hình đầy đủ trên hệ thống");
+        }
+
+        BigDecimal amount = payment.getAmount() != null ? payment.getAmount() : order.getTotalAmount();
+        if (amount == null) {
+            amount = BigDecimal.ZERO;
+        }
+
+        String transferContent = "DH" + order.getId();
+
+        MBBankPaymentInfoResponse response = new MBBankPaymentInfoResponse();
+        response.setOrderId(order.getId());
+        response.setAmount(amount);
+        response.setBankCode(safeTrim(mbBankCode));
+        response.setBankName(safeTrim(mbBankName));
+        response.setAccountNumber(accountNo);
+        response.setAccountName(accountName);
+        response.setTransferContent(transferContent);
+        response.setQrUrl(buildVietQrUrl(amount, transferContent, accountName, accountNo));
+        return response;
+    }
+
     @Transactional
     public Payment confirmPayment(Integer orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng"));
 
-        Payment payment = paymentRepository.findByOrderID(order)
+        Payment payment = paymentRepository.findTopByOrderIDOrderByIdDesc(order)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy thanh toán của đơn hàng"));
+
+        String currentOrderStatus = normalizeOrderStatus(order.getStatus());
+        String currentPaymentStatus = normalizePaymentStatus(payment.getStatus());
+
+        if ("CANCELLED".equals(currentOrderStatus) || "CANCELLED".equals(currentPaymentStatus)) {
+            throw new RuntimeException("Không thể xác nhận thanh toán cho đơn đã hủy");
+        }
+
+        if ("PAID".equals(currentOrderStatus) || "PAID".equals(currentPaymentStatus)) {
+            throw new RuntimeException("Đơn hàng đã được thanh toán trước đó");
+        }
 
         payment.setStatus("PAID");
         order.setStatus("PAID");
@@ -206,27 +465,31 @@ public class PaymentService {
             throw new RuntimeException("Bạn không có quyền hủy đơn hàng này");
         }
 
-        return cancelOrderInternal(order);
+        return cancelOrderInternal(order, true);
     }
 
     @Transactional
     public Order cancelOrderByAdmin(Integer orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng"));
-        return cancelOrderInternal(order);
+        return cancelOrderInternal(order, false);
     }
 
     private GetPaidOrderWithDetailsDto mapOrderToDetailsDto(Order order) {
-        var paymentOpt = paymentRepository.findByOrderID(order);
+        var paymentOpt = paymentRepository.findTopByOrderIDOrderByIdDesc(order);
         String paymentStatus = paymentOpt
                 .map(Payment::getStatus)
+                .map(this::normalizePaymentStatus)
                 .orElse("UNKNOWN");
         String paymentMethod = paymentOpt
                 .map(Payment::getMethod)
+                .map(this::normalizePaymentMethod)
                 .orElse("UNKNOWN");
 
         List<OrderDetail> orderDetails = orderDetailRepository.findByOrderID_Id(order.getId());
-        return new GetPaidOrderWithDetailsDto(order, paymentStatus, paymentMethod, orderDetails);
+        GetPaidOrderWithDetailsDto dto = new GetPaidOrderWithDetailsDto(order, paymentStatus, paymentMethod, orderDetails);
+        dto.setOrderStatus(normalizeOrderStatus(order.getStatus()));
+        return dto;
     }
 
     private String formatAddressSnapshot(Address address) {
@@ -239,9 +502,9 @@ public class PaymentService {
                         address.getStreetNumber(),
                         address.getAddressLine1(),
                         address.getAddressLine2(),
-                        address.getCity(),
                         address.getRegion(),
-                        address.getPostalCode()
+                address.getCity(),
+                address.getPostalCode()
                 )
                 .filter(part -> part != null && !part.trim().isEmpty())
                 .map(String::trim)
@@ -249,15 +512,15 @@ public class PaymentService {
                 .orElse(null);
     }
 
-    private Order cancelOrderInternal(Order order) {
-        String currentOrderStatus = order.getStatus() == null ? "" : order.getStatus().trim().toUpperCase();
+    private Order cancelOrderInternal(Order order, boolean restoreToCart) {
+        String currentOrderStatus = normalizeOrderStatus(order.getStatus());
         if ("CANCELLED".equals(currentOrderStatus)) {
             throw new RuntimeException("Đơn hàng đã được hủy trước đó");
         }
 
-        Payment payment = paymentRepository.findByOrderID(order).orElse(null);
-        String paymentStatus = payment != null && payment.getStatus() != null
-                ? payment.getStatus().trim().toUpperCase()
+        Payment payment = paymentRepository.findTopByOrderIDOrderByIdDesc(order).orElse(null);
+        String paymentStatus = payment != null
+                ? normalizePaymentStatus(payment.getStatus())
                 : "";
 
         if ("PAID".equals(paymentStatus) || "PAID".equals(currentOrderStatus)) {
@@ -275,6 +538,10 @@ public class PaymentService {
             Integer quantity = detail.getQuantity() == null ? 0 : detail.getQuantity();
             productColor.setStockQuantity(currentStock + Math.max(quantity, 0));
             productColorRepository.save(productColor);
+
+            if (restoreToCart && quantity > 0 && order.getAccountID() != null) {
+                restoreItemToCart(order.getAccountID(), productColor, quantity);
+            }
         }
 
         DiscountCoupon coupon = order.getCouponID();
@@ -293,6 +560,34 @@ public class PaymentService {
         }
 
         return order;
+    }
+
+    private void restoreItemToCart(Account account, ProductColor productColor, Integer quantity) {
+        if (account == null || productColor == null || quantity == null || quantity <= 0) {
+            return;
+        }
+
+        Cart cart = cartRepository.findByAccountID_Id(account.getId())
+                .orElseGet(() -> {
+                    Cart newCart = new Cart();
+                    newCart.setAccountID(account);
+                    return cartRepository.save(newCart);
+                });
+
+        List<CartItem> existingItems = cartItemRepository.findByCartID_IdAndProductColorID_Id(cart.getId(), productColor.getId());
+        CartItem cartItem;
+        if (existingItems.isEmpty()) {
+            cartItem = new CartItem();
+            cartItem.setCartID(cart);
+            cartItem.setProductColorID(productColor);
+            cartItem.setQuantity(quantity);
+        } else {
+            cartItem = existingItems.get(0);
+            Integer currentQty = cartItem.getQuantity() == null ? 0 : cartItem.getQuantity();
+            cartItem.setQuantity(currentQty + quantity);
+        }
+
+        cartItemRepository.save(cartItem);
     }
 
     private DiscountCoupon validateCoupon(String couponCode, BigDecimal orderAmount) {
@@ -347,5 +642,142 @@ public class PaymentService {
         }
 
         return discount.max(BigDecimal.ZERO).min(orderAmount);
+    }
+
+    private String normalizePaymentStatus(String status) {
+        String normalized = status == null ? "" : status.trim().toUpperCase(Locale.ROOT);
+        return switch (normalized) {
+            case "SUCCESS" -> "PAID";
+            case "UNPAID", "PAID", "CANCELLED", "UNKNOWN" -> normalized;
+            case "CANCELED" -> "CANCELLED";
+            case "PENDING", "PENDING_PAYMENT" -> "UNPAID";
+            default -> normalized.isEmpty() ? "UNKNOWN" : normalized;
+        };
+    }
+
+    private String normalizeOrderStatus(String status) {
+        String normalized = status == null ? "" : status.trim().toUpperCase(Locale.ROOT);
+        return switch (normalized) {
+            case "COMPLETED" -> "PAID";
+            case "CANCELED" -> "CANCELLED";
+            case "PENDING" -> "PENDING_PAYMENT";
+            case "PENDING_PAYMENT", "PAID", "CANCELLED" -> normalized;
+            default -> normalized;
+        };
+    }
+
+    private String normalizePaymentMethod(String method) {
+        String normalized = method == null ? "" : method.trim().toUpperCase(Locale.ROOT);
+        return switch (normalized) {
+            case "", "COD", "CASH" -> "COD";
+            case "BANKING", "BANK", "TRANSFER", "BANK_TRANSFER" -> "BANK_TRANSFER";
+            case "EWALLET", "E-WALLET", "E_WALLET" -> "E_WALLET";
+            case "MB", "MBBANK", "MB BANK", "MB-BANK", "MB_BANK" -> "BANK_TRANSFER";
+            default -> normalized;
+        };
+    }
+
+    private String buildVietQrUrl(BigDecimal amount, String transferContent, String accountName, String accountNumber) {
+        String baseUrl = safeTrim(mbBankVietQrBaseUrl);
+        if (baseUrl.endsWith("/")) {
+            baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
+        }
+
+        long amountValue = amount.max(BigDecimal.ZERO).setScale(0, RoundingMode.HALF_UP).longValue();
+        String bankCode = resolveVietQrBankCode();
+        String template = safeTrim(mbBankVietQrTemplate);
+        if (template.isEmpty()) {
+            template = "compact2";
+        }
+
+        return String.format(
+                "%s/%s-%s-%s.png?amount=%d&addInfo=%s&accountName=%s",
+                baseUrl,
+                bankCode,
+                accountNumber,
+                template,
+                amountValue,
+                urlEncode(transferContent),
+                urlEncode(accountName)
+        );
+    }
+
+    private String urlEncode(String value) {
+        return URLEncoder.encode(value == null ? "" : value, StandardCharsets.UTF_8);
+    }
+
+    private String safeTrim(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private String resolveVietQrBankCode() {
+        String explicitBin = safeTrim(mbBankVietQrBin);
+        if (!explicitBin.isEmpty()) {
+            return explicitBin;
+        }
+
+        String bankCode = safeTrim(mbBankCode).toUpperCase(Locale.ROOT);
+        if ("MB".equals(bankCode) || "MBBANK".equals(bankCode) || "MB BANK".equals(bankCode)) {
+            return "970422";
+        }
+        return bankCode;
+    }
+
+    private int normalizePositive(Integer value, Integer fallback, int defaultValue) {
+        if (value != null && value > 0) {
+            return value;
+        }
+        if (fallback != null && fallback > 0) {
+            return fallback;
+        }
+        return defaultValue;
+    }
+
+    private String trimTrailingSlash(String input) {
+        if (input.endsWith("/")) {
+            return input.substring(0, input.length() - 1);
+        }
+        return input;
+    }
+
+    private JsonNode callGhnMasterData(String path, ObjectNode bodyNode) {
+        String token = safeTrim(ghnToken);
+        if (token.isEmpty()) {
+            throw new RuntimeException("GHN chưa được cấu hình token");
+        }
+
+        String endpoint = trimTrailingSlash(safeTrim(ghnApiBaseUrl)) + path;
+
+        try {
+            HttpRequest.Builder builder = HttpRequest.newBuilder()
+                    .uri(URI.create(endpoint))
+                    .header("Content-Type", "application/json")
+                    .header("Token", token);
+
+            if (bodyNode == null) {
+                builder.GET();
+            } else {
+                builder.POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(bodyNode)));
+            }
+
+            HttpResponse<String> response = HttpClient.newHttpClient()
+                    .send(builder.build(), HttpResponse.BodyHandlers.ofString());
+
+            JsonNode rootNode = objectMapper.readTree(response.body());
+            int code = rootNode.path("code").asInt(-1);
+            if (response.statusCode() >= 400 || code != 200) {
+                String message = rootNode.path("message").asText("GHN không trả về dữ liệu địa giới");
+                throw new RuntimeException(message);
+            }
+
+            return rootNode;
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Yêu cầu GHN bị gián đoạn", ex);
+        } catch (RuntimeException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new RuntimeException("Không thể tải dữ liệu địa giới GHN", ex);
+        }
     }
 }

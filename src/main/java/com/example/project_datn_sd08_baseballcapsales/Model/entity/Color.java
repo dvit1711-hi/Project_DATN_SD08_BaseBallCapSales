@@ -1,5 +1,6 @@
 package com.example.project_datn_sd08_baseballcapsales.Model.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -9,6 +10,7 @@ import lombok.Setter;
 import org.hibernate.annotations.Nationalized;
 
 @Entity
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Table(name = "Colors")
 @NoArgsConstructor
 @AllArgsConstructor

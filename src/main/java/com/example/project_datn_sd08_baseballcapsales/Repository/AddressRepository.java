@@ -5,8 +5,12 @@ import com.example.project_datn_sd08_baseballcapsales.Model.entity.Address;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface AddressRepository extends JpaRepository<Address, Integer> {
-    Address findByAccount_Id(Integer accountId);
+import java.util.List;
 
-    Address findByAccount(Account account);
+public interface AddressRepository extends JpaRepository<Address, Integer> {
+    Address findTopByAccount_IdOrderByIdDesc(Integer accountId);
+
+    Address findTopByAccountOrderByIdDesc(Account account);
+
+    List<Address> findByAccount_IdOrderByIdDesc(Integer accountId);
 }

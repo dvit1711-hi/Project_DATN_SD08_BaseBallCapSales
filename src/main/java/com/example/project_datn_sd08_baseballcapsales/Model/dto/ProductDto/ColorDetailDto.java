@@ -17,5 +17,6 @@ public class ColorDetailDto {
     private BigDecimal price;
     private Integer sizeID;
     private String sizeName;
+    private String status;
     private List<String> images;
 }

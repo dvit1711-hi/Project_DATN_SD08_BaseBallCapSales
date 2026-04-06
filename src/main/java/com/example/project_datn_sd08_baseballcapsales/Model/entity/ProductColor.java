@@ -1,5 +1,6 @@
 package com.example.project_datn_sd08_baseballcapsales.Model.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -22,11 +23,13 @@ public class ProductColor {
     @Id
     @Column(name = "productColorID", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @JsonIgnore
     private Integer id;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "productID", nullable = false)
+    @JsonIgnore
     private Product productID;
 
     @NotNull
