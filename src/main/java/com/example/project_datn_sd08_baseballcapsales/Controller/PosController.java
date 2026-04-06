@@ -65,8 +65,11 @@ public class PosController {
     }
 
     @GetMapping("/orders/{orderId}")
-    public ResponseEntity<PosOrderGetDto> getOrder(@PathVariable Integer orderId) {
-        return ResponseEntity.ok(posService.getOrder(orderId));
+    public ResponseEntity<PosOrderGetDto> getOrder(
+            @PathVariable Integer orderId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(posService.getOrder(orderId, getCurrentEmail(authentication)));
     }
 
     @DeleteMapping("/orders/{orderId}")
@@ -81,49 +84,63 @@ public class PosController {
     @PostMapping("/orders/{orderId}/items")
     public ResponseEntity<PosOrderGetDto> addItem(
             @PathVariable Integer orderId,
-            @RequestBody PostOfflineOrderItemDto dto
+            @RequestBody PostOfflineOrderItemDto dto,
+            Authentication authentication
     ) {
-        return ResponseEntity.ok(posService.addItem(orderId, dto));
+        return ResponseEntity.ok(posService.addItem(orderId, dto, getCurrentEmail(authentication)));
     }
 
     @PutMapping("/orders/{orderId}/items/{orderDetailId}")
     public ResponseEntity<PosOrderGetDto> updateItem(
             @PathVariable Integer orderId,
             @PathVariable Integer orderDetailId,
-            @RequestBody PutOfflineOrderItemDto dto
+            @RequestBody PutOfflineOrderItemDto dto,
+            Authentication authentication
     ) {
-        return ResponseEntity.ok(posService.updateItem(orderId, orderDetailId, dto));
+        return ResponseEntity.ok(posService.updateItem(orderId, orderDetailId, dto, getCurrentEmail(authentication)));
     }
 
     @PutMapping("/orders/{orderId}")
     public ResponseEntity<PosOrderGetDto> updateOrderInfo(
             @PathVariable Integer orderId,
-            @RequestBody PutOfflineOrderInfoDto dto
+            @RequestBody PutOfflineOrderInfoDto dto,
+            Authentication authentication
     ) {
-        return ResponseEntity.ok(posService.updateOrderInfo(orderId, dto));
+        return ResponseEntity.ok(posService.updateOrderInfo(orderId, dto, getCurrentEmail(authentication)));
     }
 
     @DeleteMapping("/orders/{orderId}/items/{orderDetailId}")
     public ResponseEntity<PosOrderGetDto> removeItem(
             @PathVariable Integer orderId,
-            @PathVariable Integer orderDetailId
+            @PathVariable Integer orderDetailId,
+            Authentication authentication
     ) {
-        return ResponseEntity.ok(posService.removeItem(orderId, orderDetailId));
+        return ResponseEntity.ok(posService.removeItem(orderId, orderDetailId, getCurrentEmail(authentication)));
     }
 
     @PostMapping("/orders/{orderId}/coupon")
     public ResponseEntity<PosOrderGetDto> applyCoupon(
             @PathVariable Integer orderId,
-            @RequestBody PostApplyCouponDto dto
+            @RequestBody PostApplyCouponDto dto,
+            Authentication authentication
     ) {
-        return ResponseEntity.ok(posService.applyCoupon(orderId, dto));
+        return ResponseEntity.ok(posService.applyCoupon(orderId, dto, getCurrentEmail(authentication)));
+    }
+
+    @GetMapping("/orders/{orderId}/promotions")
+    public ResponseEntity<List<PosPromotionGetDto>> getAvailablePromotions(
+            @PathVariable Integer orderId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(posService.getAvailablePromotions(orderId, getCurrentEmail(authentication)));
     }
 
     @PostMapping("/orders/{orderId}/checkout")
     public ResponseEntity<PosOrderGetDto> checkout(
             @PathVariable Integer orderId,
-            @RequestBody PostCheckoutOrderDto dto
+            @RequestBody PostCheckoutOrderDto dto,
+            Authentication authentication
     ) {
-        return ResponseEntity.ok(posService.checkout(orderId, dto));
+        return ResponseEntity.ok(posService.checkout(orderId, dto, getCurrentEmail(authentication)));
     }
 }
