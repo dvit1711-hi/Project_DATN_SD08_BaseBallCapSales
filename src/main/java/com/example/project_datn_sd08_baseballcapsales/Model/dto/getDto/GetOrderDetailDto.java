@@ -16,14 +16,6 @@ public class GetOrderDetailDto {
 
     private Integer id;
 
-//    @NotNull
-//    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-//    private Order orderID;
-//
-//    @NotNull
-//    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-//    private Product productID;
-
     @NotNull
     private Integer quantity;
 
