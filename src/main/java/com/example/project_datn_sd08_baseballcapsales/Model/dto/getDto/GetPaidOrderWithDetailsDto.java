@@ -8,7 +8,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -36,16 +35,33 @@ public class GetPaidOrderWithDetailsDto {
     private String paymentMethod;
     private List<OrderItemDetailsDto> items;
 
-    public GetPaidOrderWithDetailsDto(Order order, String paymentStatus, String paymentMethod, List<OrderDetail> orderDetails) {
+    public GetPaidOrderWithDetailsDto(
+            Order order,
+            String paymentStatus,
+            String paymentMethod,
+            List<OrderDetail> orderDetails
+    ) {
         this.orderId = order.getId();
-        this.accountId = order.getAccountID().getId();
-        this.accountUsername = order.getAccountID().getUsername();
+
+        if (order.getAccountID() != null) {
+            this.accountId = order.getAccountID().getId();
+            this.accountUsername = order.getAccountID().getUsername();
+        } else {
+            this.accountId = null;
+            this.accountUsername = (order.getCustomerName() != null && !order.getCustomerName().trim().isEmpty())
+                    ? order.getCustomerName().trim()
+                    : "Khách lẻ";
+        }
+
         this.orderDate = order.getOrderDate() != null
                 ? order.getOrderDate().atZone(VN_ZONE).format(VN_FORMAT)
                 : null;
+
         this.orderStatus = order.getStatus();
         this.shippingAddress = order.getShippingAddress();
-        this.couponCode = order.getCouponID() != null ? order.getCouponID().getCouponCode() : null;
+        this.couponCode = order.getCouponID() != null
+                ? order.getCouponID().getCouponCode()
+                : null;
         this.totalAmount = order.getTotalAmount();
         this.paymentStatus = paymentStatus;
         this.paymentMethod = paymentMethod;
@@ -53,7 +69,7 @@ public class GetPaidOrderWithDetailsDto {
 
         if (orderDetails != null) {
             for (OrderDetail detail : orderDetails) {
-                items.add(new OrderItemDetailsDto(detail));
+                this.items.add(new OrderItemDetailsDto(detail));
             }
         }
     }
@@ -73,15 +89,23 @@ public class GetPaidOrderWithDetailsDto {
 
         public OrderItemDetailsDto(OrderDetail detail) {
             this.orderDetailId = detail.getId();
+
             if (detail.getProductColorID() != null) {
-                this.productId = detail.getProductColorID().getProductID().getId();
-                this.productName = detail.getProductColorID().getProductID().getProductName();
-                this.colorName = detail.getProductColorID().getColorID() != null ? detail.getProductColorID().getColorID().getColorName() : "Unknown";
-                // Get first image if available
-                if (!detail.getProductColorID().getImages().isEmpty()) {
+                if (detail.getProductColorID().getProductID() != null) {
+                    this.productId = detail.getProductColorID().getProductID().getId();
+                    this.productName = detail.getProductColorID().getProductID().getProductName();
+                }
+
+                this.colorName = detail.getProductColorID().getColorID() != null
+                        ? detail.getProductColorID().getColorID().getColorName()
+                        : "Unknown";
+
+                if (detail.getProductColorID().getImages() != null
+                        && !detail.getProductColorID().getImages().isEmpty()) {
                     this.imageUrl = detail.getProductColorID().getImages().get(0).getImageUrl();
                 }
             }
+
             this.quantity = detail.getQuantity();
             this.price = detail.getPrice();
         }
