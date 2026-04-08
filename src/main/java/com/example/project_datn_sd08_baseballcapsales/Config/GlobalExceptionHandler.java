@@ -1,6 +1,6 @@
 package com.example.project_datn_sd08_baseballcapsales.Config;
 
-import com.example.project_datn_sd08_baseballcapsales.payload.ApiResponse;
+import com.example.project_datn_sd08_baseballcapsales.payload.reponse.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;

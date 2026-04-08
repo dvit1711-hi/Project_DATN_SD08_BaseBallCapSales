@@ -88,21 +88,21 @@ public class PosServiceImpl implements PosService {
         if (customer != null) {
             order.setCustomerName(
                     StringUtils.hasText(dto.getCustomerName())
-                            ? dto.getCustomerName()
+                            ? dto.getCustomerName().trim()
                             : customer.getUsername()
             );
             order.setCustomerPhone(
                     StringUtils.hasText(dto.getCustomerPhone())
-                            ? dto.getCustomerPhone()
+                            ? dto.getCustomerPhone().trim()
                             : customer.getPhoneNumber()
             );
         } else {
-            order.setCustomerName(StringUtils.hasText(dto.getCustomerName()) ? dto.getCustomerName() : null);
-            order.setCustomerPhone(StringUtils.hasText(dto.getCustomerPhone()) ? dto.getCustomerPhone() : null);
+            order.setCustomerName(normalizeText(dto.getCustomerName()));
+            order.setCustomerPhone(normalizeText(dto.getCustomerPhone()));
         }
 
-        order.setNote(dto.getNote());
-        order.setShippingAddress(dto.getShippingAddress());
+        order.setNote(normalizeText(dto.getNote()));
+        order.setShippingAddress(normalizeText(dto.getShippingAddress()));
         order.setTotalAmount(BigDecimal.ZERO);
 
         order = orderRepository.save(order);
@@ -131,21 +131,21 @@ public class PosServiceImpl implements PosService {
         if (customer != null) {
             order.setCustomerName(
                     StringUtils.hasText(dto.getCustomerName())
-                            ? dto.getCustomerName()
+                            ? dto.getCustomerName().trim()
                             : customer.getUsername()
             );
             order.setCustomerPhone(
                     StringUtils.hasText(dto.getCustomerPhone())
-                            ? dto.getCustomerPhone()
+                            ? dto.getCustomerPhone().trim()
                             : customer.getPhoneNumber()
             );
         } else {
-            order.setCustomerName(StringUtils.hasText(dto.getCustomerName()) ? dto.getCustomerName() : null);
-            order.setCustomerPhone(StringUtils.hasText(dto.getCustomerPhone()) ? dto.getCustomerPhone() : null);
+            order.setCustomerName(normalizeText(dto.getCustomerName()));
+            order.setCustomerPhone(normalizeText(dto.getCustomerPhone()));
         }
 
-        order.setNote(dto.getNote());
-        order.setShippingAddress(dto.getShippingAddress());
+        order.setNote(normalizeText(dto.getNote()));
+        order.setShippingAddress(normalizeText(dto.getShippingAddress()));
 
         orderRepository.save(order);
         return getOrder(orderId, email);
@@ -310,10 +310,7 @@ public class PosServiceImpl implements PosService {
             throw new RuntimeException("Đơn hàng chưa có sản phẩm");
         }
 
-        if (order.getAccountID() == null && !StringUtils.hasText(order.getCustomerName())) {
-            throw new RuntimeException("Vui lòng nhập tên khách hàng trước khi thanh toán");
-        }
-
+        // Khách có tài khoản thì tự fill nếu thiếu
         if (order.getAccountID() != null) {
             if (!StringUtils.hasText(order.getCustomerName())) {
                 order.setCustomerName(order.getAccountID().getUsername());
@@ -321,6 +318,10 @@ public class PosServiceImpl implements PosService {
             if (!StringUtils.hasText(order.getCustomerPhone())) {
                 order.setCustomerPhone(order.getAccountID().getPhoneNumber());
             }
+        } else {
+            // Khách lẻ: cho phép để trống hoàn toàn
+            order.setCustomerName(normalizeText(order.getCustomerName()));
+            order.setCustomerPhone(normalizeText(order.getCustomerPhone()));
         }
 
         String method = dto.getMethod() == null ? "CASH" : dto.getMethod().trim().toUpperCase();
@@ -346,14 +347,12 @@ public class PosServiceImpl implements PosService {
             }
         }
 
-        // Trừ kho để giữ hàng
         for (OrderDetail detail : details) {
             ProductColor productColor = detail.getProductColorID();
             productColor.setStockQuantity(productColor.getStockQuantity() - detail.getQuantity());
             productColorRepository.save(productColor);
         }
 
-        // Trừ lượt coupon
         if (order.getCouponID() != null && order.getCouponID().getQuantity() != null) {
             if (order.getCouponID().getQuantity() <= 0) {
                 throw new RuntimeException("Mã giảm giá đã hết lượt sử dụng");
@@ -371,7 +370,6 @@ public class PosServiceImpl implements PosService {
             order.setStatus("Completed");
             payment.setStatus("SUCCESS");
         } else {
-            // BANKING: tạo yêu cầu chuyển khoản, chưa xác nhận là đã thanh toán
             order.setStatus("PENDING_PAYMENT");
             payment.setStatus("UNPAID");
         }
@@ -425,6 +423,13 @@ public class PosServiceImpl implements PosService {
         }
 
         return order;
+    }
+
+    private String normalizeText(String value) {
+        if (!StringUtils.hasText(value)) {
+            return null;
+        }
+        return value.trim();
     }
 
     private BigDecimal calculateSubtotal(Order order) {
@@ -625,6 +630,7 @@ public class PosServiceImpl implements PosService {
         dto.setSubtotal(subtotal);
         dto.setDiscountAmount(discount);
         dto.setTotalAmount(order.getTotalAmount());
+        dto.setTrackingCode(order.getTrackingCode());
 
         dto.setPaymentMethod(latestPayment != null ? normalizePosPaymentMethod(latestPayment.getMethod()) : null);
         dto.setPaymentStatus(latestPayment != null ? normalizePosPaymentStatus(latestPayment.getStatus()) : null);
