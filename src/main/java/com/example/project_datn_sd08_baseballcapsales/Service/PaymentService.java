@@ -454,7 +454,15 @@ public class PaymentService {
         }
 
         payment.setStatus("PAID");
-        order.setStatus("SHIPPING");
+
+        // For guest orders (no account), set directly to PAID status
+        // For customer orders, set to SHIPPING for further processing
+        if (order.getAccountID() == null) {
+            order.setStatus("PAID");
+        } else {
+            order.setStatus("SHIPPING");
+        }
+
         orderRepository.save(order);
         return paymentRepository.save(payment);
     }
@@ -494,11 +502,11 @@ public class PaymentService {
 
         String currentOrderStatus = normalizeOrderStatus(order.getStatus());
         String currentPaymentStatus = payment != null
-            ? normalizePaymentStatus(payment.getStatus())
-            : "UNKNOWN";
+                ? normalizePaymentStatus(payment.getStatus())
+                : "UNKNOWN";
 
         boolean isPending = "PENDING_PAYMENT".equals(currentOrderStatus)
-            && ("UNPAID".equals(currentPaymentStatus) || "UNKNOWN".equals(currentPaymentStatus));
+                && ("UNPAID".equals(currentPaymentStatus) || "UNKNOWN".equals(currentPaymentStatus));
         if (isPending) {
             throw new RuntimeException("Đơn hàng đang ở trạng thái ban đầu, không thể quay lại thêm");
         }
@@ -534,8 +542,8 @@ public class PaymentService {
             }
 
             if (payment != null) {
-            payment.setStatus("UNPAID");
-            paymentRepository.save(payment);
+                payment.setStatus("UNPAID");
+                paymentRepository.save(payment);
             }
             order.setStatus("PENDING_PAYMENT");
             orderRepository.save(order);
@@ -711,8 +719,8 @@ public class PaymentService {
                         address.getAddressLine1(),
                         address.getAddressLine2(),
                         address.getRegion(),
-                address.getCity(),
-                address.getPostalCode()
+                        address.getCity(),
+                        address.getPostalCode()
                 )
                 .filter(part -> part != null && !part.trim().isEmpty())
                 .map(String::trim)
