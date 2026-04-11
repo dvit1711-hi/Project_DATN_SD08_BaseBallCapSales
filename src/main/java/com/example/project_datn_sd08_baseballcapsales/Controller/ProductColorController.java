@@ -5,7 +5,7 @@ import com.example.project_datn_sd08_baseballcapsales.Model.dto.PutDto.PutProduc
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetProductColorDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.ProductColor;
 import com.example.project_datn_sd08_baseballcapsales.Service.ProductColorService;
-import com.example.project_datn_sd08_baseballcapsales.payload.ApiResponse;
+import com.example.project_datn_sd08_baseballcapsales.payload.reponse.ApiResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
