@@ -1,4 +1,4 @@
-package com.example.project_datn_sd08_baseballcapsales.payload;
+package com.example.project_datn_sd08_baseballcapsales.payload.reponse;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;

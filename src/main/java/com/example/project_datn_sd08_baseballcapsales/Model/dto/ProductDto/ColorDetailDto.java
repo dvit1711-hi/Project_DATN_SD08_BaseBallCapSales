@@ -18,5 +18,5 @@ public class ColorDetailDto {
     private Integer sizeID;
     private String sizeName;
     private String status;
-    private List<String> images;
+    private List<ImageDto> images;
 }

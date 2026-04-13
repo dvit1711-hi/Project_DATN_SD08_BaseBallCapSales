@@ -48,11 +48,18 @@ public class ImageController {
         ProductColor pc = productColorRepository.findById(productColorId)
                 .orElseThrow(() -> new RuntimeException("ProductColor not found"));
 
+        List<Image> existingImages = imageRepository.findByProductColorID_Id(productColorId);
+        if (existingImages.size() > 5) {
+            throw new RuntimeException("Mỗi biến thể chỉ được tối đa 5 ảnh");
+        }
+
         Image image = new Image();
         image.setProductColorID(pc);
         image.setImageUrl(dto.getImageUrl());
-        // Kiểm tra xem đã có ảnh chính chưa
-        boolean hasMain = imageRepository.existsByProductColorIDAndIsMainTrue(pc);        image.setIsMain(!hasMain); // ảnh đầu tiên → true, các ảnh tiếp theo → false
+
+        boolean hasMain = imageRepository.existsByProductColorIDAndIsMainTrue(pc);
+        image.setIsMain(!hasMain);
+
         Image saved = imageRepository.save(image);
         return ResponseEntity.ok(saved);
     }
@@ -92,5 +99,13 @@ public class ImageController {
             return ResponseEntity.status(404).body("No images found for this product color");
         }
         return ResponseEntity.noContent().build();
+    }
+    @PutMapping("/{id}/set-main")
+    public ResponseEntity<?> setMainImage(@PathVariable Integer id) {
+        Image img = imageService.setMainImage(id);
+        if (img == null) {
+            return ResponseEntity.status(404).body("Image not found");
+        }
+        return ResponseEntity.ok(img);
     }
 }

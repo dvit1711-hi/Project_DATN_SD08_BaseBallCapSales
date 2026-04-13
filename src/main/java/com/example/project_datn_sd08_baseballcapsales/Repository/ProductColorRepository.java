@@ -74,4 +74,5 @@ public interface ProductColorRepository extends JpaRepository<ProductColor, Inte
             String status,
             Integer stockQuantity
     );
+    long countByProductID_Id(Integer productId);
 }

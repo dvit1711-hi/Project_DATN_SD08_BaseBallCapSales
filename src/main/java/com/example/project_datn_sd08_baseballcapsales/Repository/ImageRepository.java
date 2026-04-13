@@ -20,5 +20,7 @@ public interface ImageRepository extends JpaRepository<Image, Integer> {
 
     Optional<Image> findByProductColorID_IdAndIsMainTrue(Integer productColorId);
 
+    List<Image> findByProductColorID(ProductColor productColor);
+
 
 }

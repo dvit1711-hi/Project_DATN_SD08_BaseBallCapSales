@@ -2,6 +2,7 @@ package com.example.project_datn_sd08_baseballcapsales.Service;
 
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.PostDto.PostProductColorDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.ProductDto.ColorDetailDto;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.ProductDto.ImageDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.ProductDto.ProductCardDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.ProductDto.ProductDetailDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.PutDto.PutProductColorDto;
@@ -65,13 +66,12 @@ public class ProductColorService {
             colorDto.setSizeID(pc.getSizeID() != null ? pc.getSizeID().getSizeID() : null);
             colorDto.setSizeName(pc.getSizeID() != null ? pc.getSizeID().getSizeName() : null);
 
-            List<Image> images = imageRepository.findByProductColorID_Id(pc.getId());
-
-            List<String> imageUrls = images.stream()
-                    .map(Image::getImageUrl)
+            List<ImageDto> imageDtos = imageRepository.findByProductColorID_Id(pc.getId())
+                    .stream()
+                    .map(ImageDto::new)
                     .toList();
 
-            colorDto.setImages(imageUrls);
+            colorDto.setImages(imageDtos);
 
             colors.add(colorDto);
         }
@@ -96,6 +96,7 @@ public class ProductColorService {
 
         return dto;
     }
+
 
     public List<GetProductColorDto> getAllProductColors() {
         return productColorRepository.findAll().stream()
@@ -128,6 +129,7 @@ public class ProductColorService {
         if (dto.getStockQuantity() != null && dto.getStockQuantity() < 0) {
             throw new IllegalArgumentException("stockQuantity phải >= 0");
         }
+//        if (dto)
 
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
