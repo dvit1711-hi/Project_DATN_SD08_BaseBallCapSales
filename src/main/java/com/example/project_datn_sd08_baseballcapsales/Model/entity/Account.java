@@ -56,7 +56,7 @@ public class Account {
     @Column(name = "createDate", updatable = false, nullable = false)
     private Instant createDate;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "statusID")
     private Status status;
 

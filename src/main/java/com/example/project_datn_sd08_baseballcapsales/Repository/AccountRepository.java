@@ -1,6 +1,7 @@
 package com.example.project_datn_sd08_baseballcapsales.Repository;
 
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Account;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -24,5 +25,9 @@ public interface AccountRepository extends JpaRepository<Account, Integer> {
     order by a.id desc
 """)
     List<Account> searchCustomers(@Param("keyword") String keyword);
+
+
+    @EntityGraph(attributePaths = {"status", "accountRoles", "accountRoles.role"})
+    Optional<Account> findWithStatusByEmail(String email);
 }
 
