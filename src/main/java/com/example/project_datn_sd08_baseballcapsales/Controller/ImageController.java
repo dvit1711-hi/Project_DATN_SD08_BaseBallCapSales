@@ -46,11 +46,11 @@ public class ImageController {
         }
 
         ProductColor pc = productColorRepository.findById(productColorId)
-                .orElseThrow(() -> new RuntimeException("ProductColor not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy biến thể sản phẩm"));
 
         List<Image> existingImages = imageRepository.findByProductColorID_Id(productColorId);
-        if (existingImages.size() > 5) {
-            throw new RuntimeException("Mỗi biến thể chỉ được tối đa 5 ảnh");
+        if (existingImages.size() >= 5) {
+            throw new RuntimeException("Chỉ được tối đa 5 ảnh");
         }
 
         Image image = new Image();
