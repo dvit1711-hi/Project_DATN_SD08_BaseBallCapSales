@@ -15,13 +15,14 @@ import java.util.List;
 
 @Service
 public class imageService {
+
     @Autowired
     private ImageRepository imageRepository;
 
     @Autowired
     private ProductColorRepository productColorRepository;
 
-    public List<Image> getImagesByProductColor(Integer id){
+    public List<Image> getImagesByProductColor(Integer id) {
         return imageRepository.findByProductColorID_Id(id);
     }
 
@@ -32,10 +33,10 @@ public class imageService {
     }
 
     public Image postImage(PostImageDto dto) {
-
         ProductColor pc = productColorRepository.findById(dto.getProductColorID())
                 .orElse(null);
         if (pc == null) return null;
+
 
         Image image = new Image();
         image.setProductColorID(pc);
@@ -64,9 +65,28 @@ public class imageService {
         imageRepository.deleteById(id);
         return true;
     }
+
     @Transactional
     public boolean deleteAllImagesByProductColorID(Integer productColorId) {
         long deletedCount = imageRepository.deleteByProductColorID_Id(productColorId);
         return deletedCount > 0;
+    }
+
+    @Transactional
+    public Image setMainImage(Integer imageId) {
+        Image target = imageRepository.findById(imageId).orElse(null);
+        if (target == null) return null;
+
+        ProductColor productColor = target.getProductColorID();
+
+        List<Image> images = imageRepository.findByProductColorID(productColor);
+
+        for (Image image : images) {
+            image.setIsMain(image.getId().equals(target.getId()));
+        }
+
+        imageRepository.saveAll(images);
+
+        return target;
     }
 }
