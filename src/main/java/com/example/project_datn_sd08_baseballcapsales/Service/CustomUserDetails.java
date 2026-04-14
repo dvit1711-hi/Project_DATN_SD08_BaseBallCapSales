@@ -28,12 +28,22 @@ public class CustomUserDetails implements UserDetailsService {
 
         List<AccountRole> rolesList = accountRolesService.findByUser(account);
 
-        return new org.springframework.security.core.userdetails.User(
-                account.getEmail(),
-                account.getPassword() != null ? account.getPassword() : "",
-                rolesList.stream()
-                        .map(role -> new SimpleGrantedAuthority(role.getRole().getRoleName()))
-                        .toList()
-        );
+        List<SimpleGrantedAuthority> authorities = rolesList.stream()
+                .map(role -> new SimpleGrantedAuthority(role.getRole().getRoleName()))
+                .toList();
+
+        String statusName = account.getStatus() != null && account.getStatus().getStatusName() != null
+                ? account.getStatus().getStatusName().trim()
+                : "";
+
+        boolean isLocked = "Locked".equalsIgnoreCase(statusName);
+
+        return org.springframework.security.core.userdetails.User
+                .withUsername(account.getEmail())
+                .password(account.getPassword() != null ? account.getPassword() : "")
+                .authorities(authorities)
+                .accountLocked(isLocked)
+                .disabled(false)
+                .build();
     }
 }

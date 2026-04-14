@@ -11,6 +11,7 @@ import org.hibernate.annotations.Nationalized;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Random;
 
 @Entity
 @Table(name = "Orders")
@@ -73,13 +74,42 @@ public class Order {
     @Column(name = "totalAmount", precision = 18, scale = 2)
     private BigDecimal totalAmount;
 
+    // ➕ FIELD MÃ VẬN ĐƠN
+    @Column(name = "trackingCode", length = 30, unique = true)
+    private String trackingCode;
+
+    // ================== AUTO GENERATE ===================
     @PrePersist
     public void prePersist() {
+
         if (this.orderDate == null) {
             this.orderDate = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
         }
+
         if (this.orderType == null || this.orderType.trim().isEmpty()) {
             this.orderType = "ONLINE";
         }
+
+        // Sinh mã vận đơn nếu chưa có
+        if (this.trackingCode == null || this.trackingCode.isEmpty()) {
+            this.trackingCode = generateTrackingCode();
+        }
+    }
+
+    private String generateTrackingCode() {
+        // Ngày: YYYYMMDD
+        String date = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"))
+                .toLocalDate()
+                .toString()
+                .replace("-", ""); // 20240409
+
+        // Sinh 3 ký tự chữ ngẫu nhiên
+        Random random = new Random();
+        StringBuilder letters = new StringBuilder();
+        for (int i = 0; i < 3; i++) {
+            letters.append((char) ('A' + random.nextInt(26)));
+        }
+
+        return "DTVD" + date + letters;
     }
 }

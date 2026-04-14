@@ -117,7 +117,6 @@ public class PaymentService {
     @Value("${ghn.default-height:10}")
     private Integer ghnDefaultHeight;
 
-    //    tien mat
     @Transactional
     public Order checkoutCOD(Integer accountId) {
         return checkout(accountId, "COD");
@@ -180,6 +179,7 @@ public class PaymentService {
         Address address = addressRepository.findTopByAccount_IdOrderByIdDesc(accountId);
         order.setShippingAddress(formatAddressSnapshot(address));
         order = orderRepository.save(order);
+
         for (CartItem item : cartItems) {
             ProductColor productColor = item.getProductColorID();
             if (productColor == null) {
@@ -206,6 +206,7 @@ public class PaymentService {
             subTotal = subTotal.add(
                     price.multiply(BigDecimal.valueOf(item.getQuantity()))
             );
+
             OrderDetail detail = new OrderDetail();
             detail.setOrderID(order);
             detail.setProductColorID(item.getProductColorID());
@@ -241,6 +242,7 @@ public class PaymentService {
         payment.setMethod(normalizedMethod);
         payment.setStatus("UNPAID");
         paymentRepository.save(payment);
+
         cartItemRepository.deleteAll(cartItems);
         return order;
     }
@@ -435,7 +437,7 @@ public class PaymentService {
     }
 
     @Transactional
-    public Payment confirmPayment(Integer orderId) {
+    public Order confirmPayment(Integer orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng"));
 
@@ -454,17 +456,19 @@ public class PaymentService {
         }
 
         payment.setStatus("PAID");
+        paymentRepository.save(payment);
 
-        // For guest orders (no account), set directly to PAID status
-        // For customer orders, set to SHIPPING for further processing
-        if (order.getAccountID() == null) {
+        String orderType = order.getOrderType() == null
+                ? ""
+                : order.getOrderType().trim().toUpperCase(Locale.ROOT);
+
+        if ("OFFLINE".equals(orderType)) {
             order.setStatus("PAID");
         } else {
             order.setStatus("SHIPPING");
         }
 
-        orderRepository.save(order);
-        return paymentRepository.save(payment);
+        return orderRepository.save(order);
     }
 
     @Transactional
@@ -516,8 +520,6 @@ public class PaymentService {
                     ? normalizePaymentMethod(payment.getMethod())
                     : "";
 
-            // COD flow: previous step before completed is transfer confirmation,
-            // so keep order in SHIPPING and only rollback payment status.
             if ("COD".equals(paymentMethod)
                     && ("SHIPPING".equals(currentOrderStatus) || "PAID".equals(currentOrderStatus))) {
                 if (payment != null) {
@@ -529,9 +531,7 @@ public class PaymentService {
                 return order;
             }
 
-            // Online flow: rollback from completed back to the shipping state,
-            // so the admin can confirm delivery again and then complete it.
-            if ("COD".equals(paymentMethod) == false) {
+            if (!"COD".equals(paymentMethod)) {
                 if (payment != null && !"PAID".equals(currentPaymentStatus)) {
                     payment.setStatus("PAID");
                     paymentRepository.save(payment);

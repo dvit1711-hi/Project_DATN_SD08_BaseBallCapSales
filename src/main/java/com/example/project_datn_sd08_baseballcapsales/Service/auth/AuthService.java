@@ -10,10 +10,12 @@ import com.example.project_datn_sd08_baseballcapsales.payload.request.LoginReque
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -47,32 +49,66 @@ public class AuthService {
     }
 
     public LoginResponse login(LoginRequest loginRequest) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        loginRequest.getEmail(),
-                        loginRequest.getPassword()
-                )
-        );
+        try {
+            Account account = accountRepository.findWithStatusByEmail(loginRequest.getEmail())
+                    .orElseThrow(() -> new RuntimeException("Email hoặc mật khẩu không đúng"));
 
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            String statusName = "";
+            if (account.getStatus() != null && account.getStatus().getStatusName() != null) {
+                statusName = account.getStatus().getStatusName().trim();
+            }
 
-        String accessToken = jwtService.generateToken(userDetails);
+            if (!"Active".equalsIgnoreCase(statusName)) {
+                if ("Locked".equalsIgnoreCase(statusName)) {
+                    throw new RuntimeException("Tài khoản đã bị khóa");
+                }
 
-        Account account = accountRepository.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new UsernameNotFoundException("Email không tồn tại"));
+                if ("Banned".equalsIgnoreCase(statusName)) {
+                    throw new RuntimeException("Tài khoản đã bị cấm");
+                }
 
-        Set<String> roles = account.getAccountRoles()
-                .stream()
-                .map(ar -> ar.getRole().getRoleName())
-                .collect(Collectors.toSet());
+                if ("Pending".equalsIgnoreCase(statusName)) {
+                    throw new RuntimeException("Tài khoản đang chờ duyệt");
+                }
 
-        return new LoginResponse(
-                accessToken,
-                account.getId(),
-                account.getUsername(),
-                account.getEmail(),
-                roles
-        );
+                if ("Inactive".equalsIgnoreCase(statusName)) {
+                    throw new RuntimeException("Tài khoản chưa kích hoạt");
+                }
+
+                throw new RuntimeException("Tài khoản không hợp lệ");
+            }
+
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            loginRequest.getEmail(),
+                            loginRequest.getPassword()
+                    )
+            );
+
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+
+            String accessToken = jwtService.generateToken(userDetails);
+
+            Set<String> roles = account.getAccountRoles()
+                    .stream()
+                    .map(ar -> ar.getRole().getRoleName())
+                    .collect(Collectors.toSet());
+
+            return new LoginResponse(
+                    accessToken,
+                    account.getId(),
+                    account.getUsername(),
+                    account.getEmail(),
+                    roles
+            );
+
+        } catch (BadCredentialsException e) {
+            throw new RuntimeException("Email hoặc mật khẩu không đúng");
+        } catch (LockedException e) {
+            throw new RuntimeException("Tài khoản đã bị khóa");
+        } catch (DisabledException e) {
+            throw new RuntimeException("Tài khoản chưa được kích hoạt");
+        }
     }
 
     public String sendForgotPasswordOtp(String email) {

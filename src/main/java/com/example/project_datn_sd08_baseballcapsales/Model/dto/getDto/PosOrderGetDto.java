@@ -33,6 +33,7 @@ public class PosOrderGetDto {
     private BigDecimal subtotal;
     private BigDecimal discountAmount;
     private BigDecimal totalAmount;
+    private String trackingCode;
 
     private String paymentMethod;
     private String paymentStatus;

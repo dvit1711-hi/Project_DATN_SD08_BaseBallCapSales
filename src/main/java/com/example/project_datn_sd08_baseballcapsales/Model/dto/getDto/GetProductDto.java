@@ -36,6 +36,8 @@ public class GetProductDto {
     private String materialName;
     private Integer productID;
 
+    private Integer variantCount;
+
     public GetProductDto(Product product) {
         this.productID = product.getId();
         this.productName = product.getProductName();

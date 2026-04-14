@@ -24,15 +24,27 @@ public class GetPaidOrderWithDetailsDto {
             DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
 
     private Integer orderId;
+    private String trackingCode;
+    private String orderType;
+
     private Integer accountId;
     private String accountUsername;
+
+    private Integer employeeId;
+    private String employeeName;
+
+    private String customerName;
+    private String customerPhone;
+
     private String orderDate;
     private String orderStatus;
     private String shippingAddress;
+    private String note;
     private String couponCode;
     private BigDecimal totalAmount;
     private String paymentStatus;
     private String paymentMethod;
+
     private List<OrderItemDetailsDto> items;
 
     public GetPaidOrderWithDetailsDto(
@@ -42,16 +54,27 @@ public class GetPaidOrderWithDetailsDto {
             List<OrderDetail> orderDetails
     ) {
         this.orderId = order.getId();
+        this.trackingCode = order.getTrackingCode();
+        this.orderType = order.getOrderType();
 
         if (order.getAccountID() != null) {
             this.accountId = order.getAccountID().getId();
             this.accountUsername = order.getAccountID().getUsername();
         } else {
             this.accountId = null;
-            this.accountUsername = (order.getCustomerName() != null && !order.getCustomerName().trim().isEmpty())
-                    ? order.getCustomerName().trim()
-                    : "Khách lẻ";
+            this.accountUsername = null;
         }
+
+        if (order.getEmployeeID() != null) {
+            this.employeeId = order.getEmployeeID().getId();
+            this.employeeName = order.getEmployeeID().getUsername();
+        } else {
+            this.employeeId = null;
+            this.employeeName = null;
+        }
+
+        this.customerName = order.getCustomerName();
+        this.customerPhone = order.getCustomerPhone();
 
         this.orderDate = order.getOrderDate() != null
                 ? order.getOrderDate().atZone(VN_ZONE).format(VN_FORMAT)
@@ -59,6 +82,7 @@ public class GetPaidOrderWithDetailsDto {
 
         this.orderStatus = order.getStatus();
         this.shippingAddress = order.getShippingAddress();
+        this.note = order.getNote();
         this.couponCode = order.getCouponID() != null
                 ? order.getCouponID().getCouponCode()
                 : null;
@@ -85,6 +109,7 @@ public class GetPaidOrderWithDetailsDto {
         private Integer quantity;
         private BigDecimal price;
         private String colorName;
+        private String sizeName;
         private String imageUrl;
 
         public OrderItemDetailsDto(OrderDetail detail) {
@@ -99,6 +124,10 @@ public class GetPaidOrderWithDetailsDto {
                 this.colorName = detail.getProductColorID().getColorID() != null
                         ? detail.getProductColorID().getColorID().getColorName()
                         : "Unknown";
+
+                this.sizeName = detail.getProductColorID().getSizeID() != null
+                        ? detail.getProductColorID().getSizeID().getSizeName()
+                        : null;
 
                 if (detail.getProductColorID().getImages() != null
                         && !detail.getProductColorID().getImages().isEmpty()) {

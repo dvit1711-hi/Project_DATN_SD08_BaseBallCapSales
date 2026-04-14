@@ -8,6 +8,7 @@ import com.example.project_datn_sd08_baseballcapsales.Model.entity.Material;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Product;
 import com.example.project_datn_sd08_baseballcapsales.Repository.BrandRepository;
 import com.example.project_datn_sd08_baseballcapsales.Repository.MaterialRepository;
+import com.example.project_datn_sd08_baseballcapsales.Repository.ProductColorRepository;
 import com.example.project_datn_sd08_baseballcapsales.Repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -26,10 +27,17 @@ public class ProductService {
     @Autowired
     private MaterialRepository materialRepository;
 
+    @Autowired
+    private ProductColorRepository productColorRepository;
+
     public List<GetProductDto> getAllProducts() {
         return productRepository.findAll()
                 .stream()
-                .map(GetProductDto::new)
+                .map(product -> {
+                    GetProductDto dto = new GetProductDto(product);
+                    dto.setVariantCount((int) productColorRepository.countByProductID_Id(product.getId()));
+                    return dto;
+                })
                 .toList();
     }
 
