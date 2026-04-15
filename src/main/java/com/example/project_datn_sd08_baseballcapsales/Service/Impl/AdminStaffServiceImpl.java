@@ -20,7 +20,8 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Transactional
-public class AdminStaffServiceImpl implements AdminStaffService {
+public class
+AdminStaffServiceImpl implements AdminStaffService {
 
     private final JdbcTemplate jdbcTemplate;
     private final PasswordEncoder passwordEncoder;

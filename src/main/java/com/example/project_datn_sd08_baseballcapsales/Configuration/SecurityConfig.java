@@ -49,6 +49,7 @@ public class SecurityConfig {
 
                         // admin/user route backend
                         .requestMatchers("/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/staff/reports/**").hasAnyRole("STAFF", "ADMIN")
                         .requestMatchers("/user/**").hasAnyRole("USER", "ADMIN", "STAFF")
 
                         // nếu có API public khác thì khai báo rõ từng nhóm ở đây
