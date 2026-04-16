@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import java.util.List;
 
 public interface ReviewRepository extends JpaRepository<Review, Integer> {
+
     @Query("select coalesce(avg(r.rating), 0) from Review r")
     Double averageRating();
 
@@ -15,4 +16,10 @@ public interface ReviewRepository extends JpaRepository<Review, Integer> {
 
     @Query("select r.rating, count(r) from Review r group by r.rating order by r.rating desc")
     List<Object[]> distributionByStar();
+
+    boolean existsByAccountID_IdAndProductID_Id(Integer accountId, Integer productId);
+
+    List<Review> findByProductID_Id(Integer productId);
+
+    List<Review> findByAccountID_Id(Integer accountId);
 }
