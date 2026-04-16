@@ -93,6 +93,9 @@ public class GetPaidOrderWithDetailsDto {
 
         if (orderDetails != null) {
             for (OrderDetail detail : orderDetails) {
+                if (detail == null || detail.getProductColorID() == null) {
+                    continue;
+                }
                 this.items.add(new OrderItemDetailsDto(detail));
             }
         }
