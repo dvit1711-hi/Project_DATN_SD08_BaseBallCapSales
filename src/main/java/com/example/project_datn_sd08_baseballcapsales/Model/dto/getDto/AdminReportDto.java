@@ -102,4 +102,17 @@ public class AdminReportDto {
         private BigDecimal price;
         private BigDecimal lineTotal;
     }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class StaffMonthSummaryDto {
+        private Integer employeeId;
+        private String employeeName;
+        private Integer year;
+        private Integer month;
+        private Long totalProductsMonth;
+        private BigDecimal totalRevenueMonth;
+    }
 }

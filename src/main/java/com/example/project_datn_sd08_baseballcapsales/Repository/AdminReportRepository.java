@@ -209,4 +209,38 @@ public interface AdminReportRepository extends JpaRepository<Order, Integer> {
             @Param("employeeId") Integer employeeId,
             @Param("reportDate") LocalDate reportDate
     );
+
+    @Query(value = """
+        select isnull(sum(od.quantity), 0)
+        from OrderDetails od
+        join Orders o on o.orderID = od.orderID
+        where o.employeeID is not null
+          and (:employeeId is null or o.employeeID = :employeeId)
+          and year(o.orderDate) = :year
+          and month(o.orderDate) = :month
+          and upper(isnull(o.status, '')) not in ('PENDING', 'CANCELLED', 'CANCELED')
+        """, nativeQuery = true)
+    Long sumProductsByMonth(@Param("employeeId") Integer employeeId,
+                            @Param("year") Integer year,
+                            @Param("month") Integer month);
+
+    @Query(value = """
+        select isnull(sum(o.totalAmount), 0)
+        from Orders o
+        where o.employeeID is not null
+          and (:employeeId is null or o.employeeID = :employeeId)
+          and year(o.orderDate) = :year
+          and month(o.orderDate) = :month
+          and upper(isnull(o.status, '')) not in ('PENDING', 'CANCELLED', 'CANCELED')
+        """, nativeQuery = true)
+    BigDecimal sumRevenueByMonth(@Param("employeeId") Integer employeeId,
+                                 @Param("year") Integer year,
+                                 @Param("month") Integer month);
+
+    @Query(value = """
+        select top 1 username
+        from Accounts
+        where accountID = :employeeId
+        """, nativeQuery = true)
+    String findEmployeeNameById(@Param("employeeId") Integer employeeId);
 }

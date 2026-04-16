@@ -5,6 +5,8 @@ import com.example.project_datn_sd08_baseballcapsales.Service.AdminReportService
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.format.annotation.DateTimeFormat;
+import java.time.LocalDate;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -61,5 +63,14 @@ public class AdminReportController {
     ) {
         System.out.println("purchase history date = " + date);
         return adminReportService.getPurchaseHistory(keyword, employeeId, date);
+    }
+
+    @GetMapping("/staff/month-summary")
+    public AdminReportDto.StaffMonthSummaryDto getStaffMonthSummary(
+            @RequestParam(required = false) Integer employeeId,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
+    ) {
+        return adminReportService.getStaffMonthSummary(employeeId, date);
     }
 }
