@@ -81,34 +81,38 @@ public interface AdminReportRepository extends JpaRepository<Order, Integer> {
                 a.accountID AS employeeId,
                 a.username AS employeeName,
                 a.email AS email,
-                COALESCE(x.totalOrdersToday, 0) AS totalOrdersToday,
-                COALESCE(y.totalProductsToday, 0) AS totalProductsToday,
-                COALESCE(x.totalRevenueToday, 0) AS totalRevenueToday
+
+                COALESCE((
+                    SELECT COUNT(*)
+                    FROM Orders o
+                    WHERE o.employeeID = a.accountID
+                      AND CONVERT(date, o.orderDate) = :reportDate
+                      AND UPPER(LTRIM(RTRIM(ISNULL(o.orderType, '')))) = 'OFFLINE'
+                      AND UPPER(LTRIM(RTRIM(ISNULL(o.status, '')))) NOT IN ('CANCELLED', 'CANCELED', 'PENDING')
+                ), 0) AS totalOrdersToday,
+
+                COALESCE((
+                    SELECT SUM(od.quantity)
+                    FROM Orders o
+                    JOIN OrderDetails od ON od.orderID = o.orderID
+                    WHERE o.employeeID = a.accountID
+                      AND CONVERT(date, o.orderDate) = :reportDate
+                      AND UPPER(LTRIM(RTRIM(ISNULL(o.orderType, '')))) = 'OFFLINE'
+                      AND UPPER(LTRIM(RTRIM(ISNULL(o.status, '')))) NOT IN ('CANCELLED', 'CANCELED', 'PENDING')
+                ), 0) AS totalProductsToday,
+
+                COALESCE((
+                    SELECT SUM(o.totalAmount)
+                    FROM Orders o
+                    WHERE o.employeeID = a.accountID
+                      AND CONVERT(date, o.orderDate) = :reportDate
+                      AND UPPER(LTRIM(RTRIM(ISNULL(o.orderType, '')))) = 'OFFLINE'
+                      AND UPPER(LTRIM(RTRIM(ISNULL(o.status, '')))) NOT IN ('CANCELLED', 'CANCELED', 'PENDING')
+                ), 0) AS totalRevenueToday
+
             FROM Accounts a
             JOIN AccountRoles ar ON ar.accountID = a.accountID
             JOIN Roles r ON r.roleID = ar.roleID
-            LEFT JOIN (
-                SELECT
-                    o.employeeID,
-                    COUNT(*) AS totalOrdersToday,
-                    SUM(o.totalAmount) AS totalRevenueToday
-                FROM Orders o
-                WHERE o.orderType = 'OFFLINE'
-                  AND CAST(o.orderDate AS DATE) = :reportDate
-                  AND UPPER(ISNULL(o.status, '')) NOT IN ('CANCELLED', 'PENDING')
-                GROUP BY o.employeeID
-            ) x ON x.employeeID = a.accountID
-            LEFT JOIN (
-                SELECT
-                    o.employeeID,
-                    SUM(od.quantity) AS totalProductsToday
-                FROM Orders o
-                JOIN OrderDetails od ON od.orderID = o.orderID
-                WHERE o.orderType = 'OFFLINE'
-                  AND CAST(o.orderDate AS DATE) = :reportDate
-                  AND UPPER(ISNULL(o.status, '')) NOT IN ('CANCELLED', 'PENDING')
-                GROUP BY o.employeeID
-            ) y ON y.employeeID = a.accountID
             WHERE r.roleName = 'ROLE_STAFF'
               AND (:employeeId IS NULL OR a.accountID = :employeeId)
             ORDER BY a.username
@@ -128,9 +132,9 @@ public interface AdminReportRepository extends JpaRepository<Order, Integer> {
                 COALESCE(SUM(o.totalAmount), 0) AS totalSpent
             FROM Orders o
             LEFT JOIN Accounts a ON a.accountID = o.accountID
-            WHERE o.orderType = 'OFFLINE'
-              AND CAST(o.orderDate AS DATE) = :reportDate
-              AND UPPER(ISNULL(o.status, '')) NOT IN ('CANCELLED', 'PENDING')
+            WHERE UPPER(LTRIM(RTRIM(ISNULL(o.orderType, '')))) = 'OFFLINE'
+              AND CONVERT(date, o.orderDate) = :reportDate
+              AND UPPER(LTRIM(RTRIM(ISNULL(o.status, '')))) NOT IN ('CANCELLED', 'CANCELED', 'PENDING')
               AND (:employeeId IS NULL OR o.employeeID = :employeeId)
               AND (
                     :keyword = ''
@@ -189,9 +193,9 @@ public interface AdminReportRepository extends JpaRepository<Order, Integer> {
             LEFT JOIN Products pr ON pr.productID = pc.productID
             LEFT JOIN Colors c ON c.colorID = pc.colorID
             LEFT JOIN Sizes s ON s.sizeID = pc.sizeID
-            WHERE o.orderType = 'OFFLINE'
-              AND CAST(o.orderDate AS DATE) = :reportDate
-              AND UPPER(ISNULL(o.status, '')) NOT IN ('CANCELLED', 'PENDING')
+            WHERE UPPER(LTRIM(RTRIM(ISNULL(o.orderType, '')))) = 'OFFLINE'
+              AND CONVERT(date, o.orderDate) = :reportDate
+              AND UPPER(LTRIM(RTRIM(ISNULL(o.status, '')))) NOT IN ('CANCELLED', 'CANCELED', 'PENDING')
               AND (:employeeId IS NULL OR o.employeeID = :employeeId)
               AND (
                     :keyword = ''
@@ -211,36 +215,38 @@ public interface AdminReportRepository extends JpaRepository<Order, Integer> {
     );
 
     @Query(value = """
-        select isnull(sum(od.quantity), 0)
-        from OrderDetails od
-        join Orders o on o.orderID = od.orderID
-        where o.employeeID is not null
-          and (:employeeId is null or o.employeeID = :employeeId)
-          and year(o.orderDate) = :year
-          and month(o.orderDate) = :month
-          and upper(isnull(o.status, '')) not in ('PENDING', 'CANCELLED', 'CANCELED')
-        """, nativeQuery = true)
+            SELECT ISNULL(SUM(od.quantity), 0)
+            FROM OrderDetails od
+            JOIN Orders o ON o.orderID = od.orderID
+            WHERE o.employeeID IS NOT NULL
+              AND (:employeeId IS NULL OR o.employeeID = :employeeId)
+              AND YEAR(o.orderDate) = :year
+              AND MONTH(o.orderDate) = :month
+              AND UPPER(LTRIM(RTRIM(ISNULL(o.orderType, '')))) = 'OFFLINE'
+              AND UPPER(LTRIM(RTRIM(ISNULL(o.status, '')))) NOT IN ('PENDING', 'CANCELLED', 'CANCELED')
+            """, nativeQuery = true)
     Long sumProductsByMonth(@Param("employeeId") Integer employeeId,
                             @Param("year") Integer year,
                             @Param("month") Integer month);
 
     @Query(value = """
-        select isnull(sum(o.totalAmount), 0)
-        from Orders o
-        where o.employeeID is not null
-          and (:employeeId is null or o.employeeID = :employeeId)
-          and year(o.orderDate) = :year
-          and month(o.orderDate) = :month
-          and upper(isnull(o.status, '')) not in ('PENDING', 'CANCELLED', 'CANCELED')
-        """, nativeQuery = true)
+            SELECT ISNULL(SUM(o.totalAmount), 0)
+            FROM Orders o
+            WHERE o.employeeID IS NOT NULL
+              AND (:employeeId IS NULL OR o.employeeID = :employeeId)
+              AND YEAR(o.orderDate) = :year
+              AND MONTH(o.orderDate) = :month
+              AND UPPER(LTRIM(RTRIM(ISNULL(o.orderType, '')))) = 'OFFLINE'
+              AND UPPER(LTRIM(RTRIM(ISNULL(o.status, '')))) NOT IN ('PENDING', 'CANCELLED', 'CANCELED')
+            """, nativeQuery = true)
     BigDecimal sumRevenueByMonth(@Param("employeeId") Integer employeeId,
                                  @Param("year") Integer year,
                                  @Param("month") Integer month);
 
     @Query(value = """
-        select top 1 username
-        from Accounts
-        where accountID = :employeeId
-        """, nativeQuery = true)
+            SELECT TOP 1 username
+            FROM Accounts
+            WHERE accountID = :employeeId
+            """, nativeQuery = true)
     String findEmployeeNameById(@Param("employeeId") Integer employeeId);
 }
