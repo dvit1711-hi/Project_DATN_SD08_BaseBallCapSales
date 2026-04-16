@@ -11,10 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -196,5 +193,34 @@ public class AdminReportServiceImpl implements AdminReportService {
 
     private BigDecimal nvlMoney(BigDecimal value) {
         return value == null ? BigDecimal.ZERO : value;
+    }
+
+    public AdminReportDto.StaffMonthSummaryDto getStaffMonthSummary(Integer employeeId, LocalDate date) {
+        LocalDate targetDate = date != null ? date : LocalDate.now();
+
+        int year = targetDate.getYear();
+        int month = targetDate.getMonthValue();
+
+        Long totalProductsMonth = Optional.ofNullable(
+                adminReportRepository.sumProductsByMonth(employeeId, year, month)
+        ).orElse(0L);
+
+        BigDecimal totalRevenueMonth = Optional.ofNullable(
+                adminReportRepository.sumRevenueByMonth(employeeId, year, month)
+        ).orElse(BigDecimal.ZERO);
+
+        String employeeName = employeeId == null
+                ? "Tất cả nhân viên"
+                : Optional.ofNullable(adminReportRepository.findEmployeeNameById(employeeId))
+                .orElse("Không rõ nhân viên");
+
+        return new AdminReportDto.StaffMonthSummaryDto(
+                employeeId,
+                employeeName,
+                year,
+                month,
+                totalProductsMonth,
+                totalRevenueMonth
+        );
     }
 }

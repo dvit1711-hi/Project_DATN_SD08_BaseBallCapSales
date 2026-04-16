@@ -17,4 +17,7 @@ public interface AdminReportService {
     AdminReportDto.StaffTodayDashboardDto getMyTodayDashboard(String email, LocalDate reportDate);
     List<AdminReportDto.CustomerSearchDto> getMyCustomerSummary(String email, String keyword, LocalDate reportDate);
     List<AdminReportDto.CustomerPurchaseHistoryDto> getMyPurchaseHistory(String email, String keyword, LocalDate reportDate);
+
+
+    AdminReportDto.StaffMonthSummaryDto getStaffMonthSummary(Integer employeeId, LocalDate date);
 }
