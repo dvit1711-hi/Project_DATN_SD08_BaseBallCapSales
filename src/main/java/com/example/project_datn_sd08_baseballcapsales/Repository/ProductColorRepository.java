@@ -2,6 +2,7 @@ package com.example.project_datn_sd08_baseballcapsales.Repository;
 
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.ProductColor;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -75,4 +76,14 @@ public interface ProductColorRepository extends JpaRepository<ProductColor, Inte
             Integer stockQuantity
     );
     long countByProductID_Id(Integer productId);
+    Optional<ProductColor> findFirstByProductID_IdAndIsRepresentativeTrueAndStatus(Integer productId, String status);
+    @Modifying
+    @Query("""
+    update ProductColor pc
+    set pc.isRepresentative = false
+    where pc.productID.id = :productId
+      and pc.id <> :excludeId
+""")
+    void clearRepresentativeOfProduct(@Param("productId") Integer productId,
+                                      @Param("excludeId") Integer excludeId);
 }

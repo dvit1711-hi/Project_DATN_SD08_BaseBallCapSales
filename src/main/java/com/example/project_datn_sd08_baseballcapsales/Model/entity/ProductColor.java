@@ -52,6 +52,9 @@ public class ProductColor {
     @Column(name = "status", length = 20)
     private String status;
 
+    @Column(name = "isRepresentative", nullable = false)
+    private Boolean isRepresentative = false;
+
     @OneToMany(mappedBy = "productColorID")
     private List<Image> images;
 }

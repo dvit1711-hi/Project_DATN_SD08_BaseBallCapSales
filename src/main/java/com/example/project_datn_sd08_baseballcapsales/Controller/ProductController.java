@@ -1,8 +1,8 @@
 package com.example.project_datn_sd08_baseballcapsales.Controller;
 
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.PostDto.PostProductDto;
-import com.example.project_datn_sd08_baseballcapsales.Model.dto.ProductDto.ProductCardDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.ProductDto.ProductDetailDto;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.ProductDto.ProductSummaryCardDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.PutDto.PutProductDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetProductDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Product;
@@ -26,13 +26,10 @@ public class ProductController {
     private ProductColorService productColorService;
 
     @GetMapping("/card")
-    public List<ProductCardDto> getProductCards(
+    public List<ProductSummaryCardDto> getProductCards(
             @RequestParam(value = "search", required = false) String search
     ) {
-        if (search != null && !search.trim().isEmpty()) {
-            return productColorService.searchProductCards(search);
-        }
-        return productColorService.getProductCards();
+        return productService.getStorefrontProductCards(search);
     }
 
     @GetMapping

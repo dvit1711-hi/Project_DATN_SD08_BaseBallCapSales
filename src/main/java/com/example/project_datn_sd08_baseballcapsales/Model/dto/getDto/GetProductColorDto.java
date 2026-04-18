@@ -21,6 +21,7 @@ public class GetProductColorDto {
     private BigDecimal price;
     private Integer stockQuantity;
     private String mainImage;
+    private Boolean isRepresentative;
     @Size(max = 20)
     private String status;
 
@@ -36,6 +37,7 @@ public class GetProductColorDto {
         this.price = pc.getPrice();
         this.status =pc.getStatus();
         this.stockQuantity = pc.getStockQuantity();
+        this.isRepresentative = pc.getIsRepresentative();
         // Get first image from images list if available
         this.mainImage = (pc.getImages() != null && !pc.getImages().isEmpty()) 
             ? pc.getImages().get(0).getImageUrl() 

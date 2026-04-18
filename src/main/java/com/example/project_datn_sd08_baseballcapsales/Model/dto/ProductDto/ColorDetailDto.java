@@ -18,5 +18,6 @@ public class ColorDetailDto {
     private Integer sizeID;
     private String sizeName;
     private String status;
+    private Boolean isRepresentative;
     private List<ImageDto> images;
 }

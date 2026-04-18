@@ -63,6 +63,7 @@ public class ProductColorService {
             colorDto.setStockQuantity(pc.getStockQuantity());
             colorDto.setPrice(pc.getPrice());
             colorDto.setStatus(pc.getStatus());
+            colorDto.setIsRepresentative(Boolean.TRUE.equals(pc.getIsRepresentative()));
             colorDto.setSizeID(pc.getSizeID() != null ? pc.getSizeID().getSizeID() : null);
             colorDto.setSizeName(pc.getSizeID() != null ? pc.getSizeID().getSizeName() : null);
 
@@ -109,6 +110,7 @@ public class ProductColorService {
                 .orElseThrow(() -> new IllegalArgumentException("Product color not found"));
     }
 
+    @Transactional
     public ProductColor createProductColor(Integer productId, PostProductColorDto dto) {
         if (productId == null) {
             throw new IllegalArgumentException("productId must not be null");
@@ -129,7 +131,6 @@ public class ProductColorService {
         if (dto.getStockQuantity() != null && dto.getStockQuantity() < 0) {
             throw new IllegalArgumentException("stockQuantity phải >= 0");
         }
-//        if (dto)
 
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
@@ -158,10 +159,27 @@ public class ProductColorService {
         pc.setPrice(dto.getPrice());
         pc.setStockQuantity(dto.getStockQuantity() != null ? dto.getStockQuantity() : 0);
         pc.setStatus(dto.getStatus() == null || dto.getStatus().isBlank() ? "ACTIVE" : dto.getStatus().trim());
+        pc.setIsRepresentative(Boolean.TRUE.equals(dto.getIsRepresentative()));
 
-        return productColorRepository.save(pc);
+        ProductColor saved = productColorRepository.save(pc);
+
+        if (Boolean.TRUE.equals(saved.getIsRepresentative())) {
+            productColorRepository.clearRepresentativeOfProduct(productId, saved.getId());
+        } else {
+            boolean hasRepresentative = productColorRepository
+                    .findFirstByProductID_IdAndIsRepresentativeTrueAndStatus(productId, "ACTIVE")
+                    .isPresent();
+
+            if (!hasRepresentative) {
+                saved.setIsRepresentative(true);
+                saved = productColorRepository.save(saved);
+            }
+        }
+
+        return saved;
     }
 
+    @Transactional
     public ProductColor updateProductColor(Integer productColorId, PutProductColorDto dto) {
         ProductColor pc = productColorRepository.findById(productColorId)
                 .orElseThrow(() -> new RuntimeException("Product color not found"));
@@ -208,7 +226,26 @@ public class ProductColorService {
                 : dto.getStatus().trim());
         pc.setStockQuantity(dto.getStockQuantity() != null ? dto.getStockQuantity() : 0);
 
-        return productColorRepository.save(pc);
+        if (dto.getIsRepresentative() != null) {
+            pc.setIsRepresentative(dto.getIsRepresentative());
+        }
+
+        ProductColor saved = productColorRepository.save(pc);
+
+        if (Boolean.TRUE.equals(saved.getIsRepresentative())) {
+            productColorRepository.clearRepresentativeOfProduct(saved.getProductID().getId(), saved.getId());
+        } else {
+            boolean hasRepresentative = productColorRepository
+                    .findFirstByProductID_IdAndIsRepresentativeTrueAndStatus(saved.getProductID().getId(), "ACTIVE")
+                    .isPresent();
+
+            if (!hasRepresentative && "ACTIVE".equalsIgnoreCase(saved.getStatus())) {
+                saved.setIsRepresentative(true);
+                saved = productColorRepository.save(saved);
+            }
+        }
+
+        return saved;
     }
 
     @Transactional

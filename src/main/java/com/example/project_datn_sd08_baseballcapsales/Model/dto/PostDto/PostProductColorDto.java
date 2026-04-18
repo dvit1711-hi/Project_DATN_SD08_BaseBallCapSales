@@ -19,6 +19,7 @@ public class PostProductColorDto {
     private Integer sizeID;
     private BigDecimal price;
     private Integer stockQuantity;
+    private Boolean isRepresentative;
     @Size(max = 20)
     private String status;
 }
