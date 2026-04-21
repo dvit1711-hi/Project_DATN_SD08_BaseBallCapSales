@@ -44,7 +44,21 @@ public class ProductService {
                 .stream()
                 .map(product -> {
                     GetProductDto dto = new GetProductDto(product);
-                    dto.setVariantCount((int) productColorRepository.countByProductID_Id(product.getId()));
+                    List<ProductColor> variants = product.getProductColors() == null
+                            ? new ArrayList<>()
+                            : product.getProductColors().stream()
+                            .filter(Objects::nonNull)
+                            .filter(pc -> "ACTIVE".equalsIgnoreCase(pc.getStatus()))
+                            .toList();
+                    dto.setVariantCount(variants.size());
+                    int totalStock = variants.stream()
+                            .filter(Objects::nonNull)
+                            .map(ProductColor::getStockQuantity)
+                            .filter(Objects::nonNull)
+                            .mapToInt(qty -> Math.max(qty, 0))
+                            .sum();
+                    dto.setTotalStock(totalStock);
+                    dto.setInStock(totalStock > 0);
                     return dto;
                 })
                 .toList();

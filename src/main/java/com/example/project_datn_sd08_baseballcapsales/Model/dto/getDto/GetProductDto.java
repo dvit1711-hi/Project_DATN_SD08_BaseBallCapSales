@@ -37,6 +37,8 @@ public class GetProductDto {
     private Integer productID;
 
     private Integer variantCount;
+    private Integer totalStock;
+    private Boolean inStock;
 
     public GetProductDto(Product product) {
         this.productID = product.getId();
