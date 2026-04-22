@@ -121,7 +121,11 @@ public class ProductService {
                 .sum());
 
         dto.setDefaultVariantId(defaultVariant != null ? defaultVariant.getId() : null);
-        dto.setDisplayImage(resolveDisplayImage(defaultVariant, activeVariants));
+
+        String displayImage = resolveDisplayImage(defaultVariant, activeVariants);
+        dto.setDisplayImage(displayImage);
+        dto.setHoverImage(resolveHoverImage(defaultVariant, activeVariants, displayImage));
+
         dto.setColors(buildColorDots(activeVariants));
 
         return dto;
@@ -241,6 +245,68 @@ public class ProductService {
 
     private String safe(String value) {
         return value == null ? "" : value.trim();
+    }
+    private String resolveHoverImage(ProductColor defaultVariant, List<ProductColor> variants, String displayImage) {
+        String image = findSecondaryImage(defaultVariant, displayImage);
+        if (image != null) {
+            return image;
+        }
+
+        for (ProductColor pc : variants) {
+            if (defaultVariant != null && Objects.equals(pc.getId(), defaultVariant.getId())) {
+                continue;
+            }
+
+            image = findMainImage(pc);
+            if (isDifferentImage(image, displayImage)) {
+                return image;
+            }
+        }
+
+        for (ProductColor pc : variants) {
+            if (defaultVariant != null && Objects.equals(pc.getId(), defaultVariant.getId())) {
+                continue;
+            }
+
+            image = findAnyDifferentImage(pc, displayImage);
+            if (image != null) {
+                return image;
+            }
+        }
+
+        return displayImage;
+    }
+
+    private String findSecondaryImage(ProductColor pc, String displayImage) {
+        if (pc == null || pc.getImages() == null) {
+            return null;
+        }
+
+        return pc.getImages().stream()
+                .filter(Objects::nonNull)
+                .map(Image::getImageUrl)
+                .filter(url -> url != null && !url.isBlank())
+                .filter(url -> !Objects.equals(url, displayImage))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private String findAnyDifferentImage(ProductColor pc, String displayImage) {
+        if (pc == null || pc.getImages() == null) {
+            return null;
+        }
+
+        return pc.getImages().stream()
+                .filter(Objects::nonNull)
+                .map(Image::getImageUrl)
+                .filter(url -> url != null && !url.isBlank())
+                .filter(url -> !Objects.equals(url, displayImage))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private boolean isDifferentImage(String image, String displayImage) {
+        return image != null && !image.isBlank() && !Objects.equals(image, displayImage);
     }
 
     public Product createProduct(PostProductDto dto) {

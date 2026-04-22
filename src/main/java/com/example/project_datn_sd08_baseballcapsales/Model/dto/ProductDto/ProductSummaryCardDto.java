@@ -22,6 +22,8 @@ public class ProductSummaryCardDto {
     private String materialName;
 
     private String displayImage;
+    private String hoverImage;
+
     private BigDecimal displayPrice;
 
     private Boolean inStock;
