@@ -1,6 +1,8 @@
 package com.example.project_datn_sd08_baseballcapsales.Controller;
 
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetPaidOrderWithDetailsDto;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.payload.request.PostCompletedReturnRequest;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.payload.request.PostShippingReturnDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Order;
 import com.example.project_datn_sd08_baseballcapsales.Service.PaymentService;
 import com.example.project_datn_sd08_baseballcapsales.payload.reponse.MBBankPaymentInfoResponse;
@@ -173,5 +175,28 @@ public class PaymentController {
         response.put("paymentStatus", paymentStatus);
         response.put("message", message);
         return response;
+    }
+
+    @GetMapping("/orders/return-search")
+    public ResponseEntity<GetPaidOrderWithDetailsDto> findCompletedReturnableOrderByCode(
+            @RequestParam String code
+    ) {
+        return ResponseEntity.ok(paymentService.findCompletedReturnableOrderByCode(code));
+    }
+
+    @PostMapping("/orders/{orderId}/shipping-returns")
+    public ResponseEntity<GetPaidOrderWithDetailsDto> returnShippingOrderItemByAdmin(
+            @PathVariable Integer orderId,
+            @RequestBody PostShippingReturnDto request
+    ) {
+        return ResponseEntity.ok(paymentService.returnShippingOrderItemByAdmin(orderId, request));
+    }
+
+    @PostMapping("/orders/{orderId}/completed-returns")
+    public ResponseEntity<GetPaidOrderWithDetailsDto> returnCompletedOrderByAdmin(
+            @PathVariable Integer orderId,
+            @RequestBody PostCompletedReturnRequest request
+    ) {
+        return ResponseEntity.ok(paymentService.returnCompletedOrderByAdmin(orderId, request));
     }
 }

@@ -1,5 +1,7 @@
 package com.example.project_datn_sd08_baseballcapsales.Service;
 
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.payload.request.PostShippingReturnDto;
+import com.example.project_datn_sd08_baseballcapsales.Model.dto.payload.request.PostCompletedReturnRequest;
 import com.example.project_datn_sd08_baseballcapsales.payload.request.GhnShippingFeeRequest;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetPaidOrderWithDetailsDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.*;
@@ -878,7 +880,7 @@ public class PaymentService {
             case "CANCELED" -> "CANCELLED";
             case "PENDING" -> "PENDING_PAYMENT";
             case "DELIVERING", "IN_TRANSIT" -> "SHIPPING";
-            case "PENDING_PAYMENT", "SHIPPING", "PAID", "CANCELLED" -> normalized;
+            case "PENDING_PAYMENT", "SHIPPING", "PAID", "CANCELLED", "PARTIAL_RETURNED", "RETURNED" -> normalized;
             default -> normalized;
         };
     }
@@ -996,5 +998,313 @@ public class PaymentService {
         } catch (Exception ex) {
             throw new RuntimeException("Không thể tải dữ liệu địa giới GHN", ex);
         }
+    }
+
+    // =========================
+    // HOÀN HÀNG - ĐƠN ĐANG VẬN CHUYỂN
+    // =========================
+    @Transactional
+    public GetPaidOrderWithDetailsDto returnShippingOrderItemByAdmin(
+            Integer orderId,
+            PostShippingReturnDto request
+    ) {
+        Order order = findOrderOrThrow(orderId);
+        Payment payment = paymentRepository.findTopByOrderIDOrderByIdDesc(order).orElse(null);
+
+        String orderStatus = normalizeOrderStatus(order.getStatus());
+        String paymentStatus = payment != null ? normalizePaymentStatus(payment.getStatus()) : "UNKNOWN";
+
+        if ("CANCELLED".equals(orderStatus) || "CANCELLED".equals(paymentStatus)) {
+            throw new RuntimeException("Không thể hoàn hàng cho đơn đã hủy");
+        }
+
+        if (!"SHIPPING".equals(orderStatus)) {
+            throw new RuntimeException("Chỉ đơn đang vận chuyển mới được hoàn hàng");
+        }
+
+        BigDecimal returnAmount = processReturnSingleItem(
+                order,
+                request.getOrderDetailId(),
+                request.getQuantity(),
+                request.getNote(),
+                "SHIPPING_RETURN"
+        );
+
+        updateOrderAndPaymentAfterReturn(order, payment, returnAmount);
+
+        if (isAllOrderItemsReturned(order.getId())) {
+            order.setStatus("RETURNED");
+        } else {
+            // Hoàn hàng một phần khi đang vận chuyển thì vẫn tiếp tục giao
+            order.setStatus("SHIPPING");
+        }
+
+        updateOrderAndPaymentAfterReturn(order, payment, returnAmount);
+
+        if (isAllOrderItemsReturned(order.getId())) {
+            order.setStatus("RETURNED");
+        } else {
+            order.setStatus("SHIPPING");
+        }
+
+        orderRepository.save(order);
+
+        return mapOrderToDetailsDto(findOrderOrThrow(orderId));
+    }
+
+    // =========================
+    // TRẢ HÀNG - ĐƠN ĐÃ HOÀN THÀNH
+    // =========================
+    public GetPaidOrderWithDetailsDto findCompletedReturnableOrderByCode(String code) {
+        String normalizedCode = code == null ? "" : code.trim();
+
+        if (normalizedCode.isEmpty()) {
+            throw new RuntimeException("Vui lòng nhập mã hóa đơn");
+        }
+
+        Order order = findOrderByInvoiceCode(normalizedCode);
+        String orderStatus = normalizeOrderStatus(order.getStatus());
+
+        if ("RETURNED".equals(orderStatus)) {
+            throw new RuntimeException("Đơn hàng này đã trả toàn bộ");
+        }
+
+        if (!List.of("PAID", "PARTIAL_RETURNED").contains(orderStatus)) {
+            throw new RuntimeException("Chỉ đơn hàng đã hoàn thành mới được trả hàng");
+        }
+
+        return mapOrderToDetailsDto(order);
+    }
+
+    private Order findOrderByInvoiceCode(String code) {
+        String normalizedCode = code == null ? "" : code.trim();
+
+        if (normalizedCode.isEmpty()) {
+            throw new RuntimeException("Vui lòng nhập mã hóa đơn");
+        }
+
+        // 1. Tìm theo mã vận đơn/trackingCode, ví dụ DTVD20260429ABC
+        var orderByTrackingCode = orderRepository.findByTrackingCodeIgnoreCase(normalizedCode);
+        if (orderByTrackingCode.isPresent()) {
+            return orderByTrackingCode.get();
+        }
+
+        // 2. Tìm theo dạng HD13, #13, 13
+        String orderIdText = normalizedCode
+                .replace("#", "")
+                .replace("HD", "")
+                .replace("hd", "")
+                .trim();
+
+        if (!orderIdText.matches("\\d+")) {
+            throw new RuntimeException("Không tìm thấy đơn hàng");
+        }
+
+        Integer orderId;
+        try {
+            orderId = Integer.parseInt(orderIdText);
+        } catch (NumberFormatException ex) {
+            throw new RuntimeException("Mã hóa đơn không hợp lệ");
+        }
+
+        return orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng"));
+    }
+
+    @Transactional
+    public GetPaidOrderWithDetailsDto returnCompletedOrderByAdmin(
+            Integer orderId,
+            PostCompletedReturnRequest request
+    ) {
+        if (request == null || request.getItems() == null || request.getItems().isEmpty()) {
+            throw new RuntimeException("Vui lòng chọn sản phẩm cần trả");
+        }
+
+        Order order = findOrderOrThrow(orderId);
+        Payment payment = paymentRepository.findTopByOrderIDOrderByIdDesc(order).orElse(null);
+
+        String orderStatus = normalizeOrderStatus(order.getStatus());
+        String paymentStatus = payment != null ? normalizePaymentStatus(payment.getStatus()) : "UNKNOWN";
+
+        if ("CANCELLED".equals(orderStatus) || "CANCELLED".equals(paymentStatus)) {
+            throw new RuntimeException("Không thể trả hàng cho đơn đã hủy");
+        }
+
+        if ("RETURNED".equals(orderStatus)) {
+            throw new RuntimeException("Đơn hàng này đã trả toàn bộ");
+        }
+
+        if (!List.of("PAID", "PARTIAL_RETURNED").contains(orderStatus)) {
+            throw new RuntimeException("Chỉ đơn hàng đã hoàn thành mới được trả hàng");
+        }
+
+        BigDecimal totalReturnAmount = BigDecimal.ZERO;
+
+        for (PostCompletedReturnRequest.Item item : request.getItems()) {
+            totalReturnAmount = totalReturnAmount.add(
+                    processReturnSingleItem(
+                            order,
+                            item.getOrderDetailId(),
+                            item.getQuantity(),
+                            item.getNote() != null && !item.getNote().trim().isEmpty()
+                                    ? item.getNote()
+                                    : request.getNote(),
+                            "COMPLETED_RETURN"
+                    )
+            );
+        }
+
+        updateOrderAndPaymentAfterReturn(order, payment, totalReturnAmount);
+
+        if (isAllOrderItemsReturned(order.getId())) {
+            order.setStatus("RETURNED");
+        } else {
+            order.setStatus("PARTIAL_RETURNED");
+        }
+
+        orderRepository.save(order);
+        return mapOrderToDetailsDto(findOrderOrThrow(orderId));
+    }
+
+    private Order findOrderOrThrow(Integer orderId) {
+        return orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng"));
+    }
+
+    private BigDecimal processReturnSingleItem(
+            Order order,
+            Integer orderDetailId,
+            Integer quantity,
+            String note,
+            String type
+    ) {
+        if (orderDetailId == null) {
+            throw new RuntimeException("Thiếu sản phẩm cần xử lý");
+        }
+
+        if (quantity == null || quantity <= 0) {
+            throw new RuntimeException("Số lượng phải lớn hơn 0");
+        }
+
+        String normalizedNote = note == null ? "" : note.trim();
+        if (normalizedNote.isEmpty()) {
+            throw new RuntimeException("Vui lòng nhập ghi chú");
+        }
+
+        OrderDetail detail = orderDetailRepository.findById(orderDetailId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm trong đơn"));
+
+        if (detail.getOrderID() == null || !detail.getOrderID().getId().equals(order.getId())) {
+            throw new RuntimeException("Sản phẩm không thuộc đơn hàng này");
+        }
+
+        ProductColor productColor = detail.getProductColorID();
+        if (productColor == null) {
+            throw new RuntimeException("Biến thể sản phẩm không hợp lệ");
+        }
+
+        int boughtQuantity = detail.getQuantity() == null ? 0 : detail.getQuantity();
+        int returnedQuantity = detail.getReturnedQuantity() == null ? 0 : detail.getReturnedQuantity();
+        int returnableQuantity = boughtQuantity - returnedQuantity;
+
+        if (returnableQuantity <= 0) {
+            throw new RuntimeException("Sản phẩm này đã xử lý hết số lượng");
+        }
+
+        if (quantity > returnableQuantity) {
+            throw new RuntimeException("Số lượng vượt quá số lượng còn lại");
+        }
+
+        productColor.setStockQuantity((productColor.getStockQuantity() == null ? 0 : productColor.getStockQuantity()) + quantity);
+        productColorRepository.save(productColor);
+
+        detail.setReturnedQuantity(returnedQuantity + quantity);
+
+        if ("SHIPPING_RETURN".equals(type)) {
+            int currentShippingReturned = detail.getShippingReturnedQuantity() == null
+                    ? 0
+                    : detail.getShippingReturnedQuantity();
+
+            detail.setShippingReturnedQuantity(currentShippingReturned + quantity);
+        } else if ("COMPLETED_RETURN".equals(type)) {
+            int currentCompletedReturned = detail.getCompletedReturnedQuantity() == null
+                    ? 0
+                    : detail.getCompletedReturnedQuantity();
+
+            detail.setCompletedReturnedQuantity(currentCompletedReturned + quantity);
+        }
+        orderDetailRepository.save(detail);
+
+        BigDecimal price = detail.getPrice() == null ? BigDecimal.ZERO : detail.getPrice();
+        BigDecimal returnAmount = price.multiply(BigDecimal.valueOf(quantity));
+
+        appendReturnNote(order, detail, quantity, returnAmount, normalizedNote, type);
+
+        return returnAmount;
+    }
+
+    private void updateOrderAndPaymentAfterReturn(Order order, Payment payment, BigDecimal returnAmount) {
+        BigDecimal safeReturnAmount = returnAmount == null ? BigDecimal.ZERO : returnAmount.max(BigDecimal.ZERO);
+
+        BigDecimal currentTotal = order.getTotalAmount() == null ? BigDecimal.ZERO : order.getTotalAmount();
+        order.setTotalAmount(currentTotal.subtract(safeReturnAmount).max(BigDecimal.ZERO));
+
+        if (payment != null && payment.getAmount() != null) {
+            payment.setAmount(payment.getAmount().subtract(safeReturnAmount).max(BigDecimal.ZERO));
+            paymentRepository.save(payment);
+        }
+    }
+
+    private boolean isAllOrderItemsReturned(Integer orderId) {
+        List<OrderDetail> details = orderDetailRepository.findByOrderID_Id(orderId);
+
+        if (details == null || details.isEmpty()) {
+            return false;
+        }
+
+        return details.stream().allMatch(detail -> {
+            int quantity = detail.getQuantity() == null ? 0 : detail.getQuantity();
+            int returnedQuantity = detail.getReturnedQuantity() == null ? 0 : detail.getReturnedQuantity();
+            return quantity > 0 && returnedQuantity >= quantity;
+        });
+    }
+
+    private void appendReturnNote(
+            Order order,
+            OrderDetail detail,
+            Integer quantity,
+            BigDecimal amount,
+            String note,
+            String type
+    ) {
+        String productName = "Sản phẩm";
+
+        if (detail.getProductColorID() != null
+                && detail.getProductColorID().getProductID() != null
+                && detail.getProductColorID().getProductID().getProductName() != null) {
+            productName = detail.getProductColorID().getProductID().getProductName();
+        }
+
+        String label = "SHIPPING_RETURN".equals(type) ? "HOAN_HANG" : "TRA_HANG";
+        String currentNote = order.getNote() == null ? "" : order.getNote().trim();
+        String timeText = LocalDateTime.now().format(REVERT_REASON_TIME_FORMAT);
+
+        String line = "[" + label + " " + timeText + "] "
+                + productName
+                + " - SL: " + quantity
+                + " - Tiền: " + amount
+                + " - Ghi chú: " + note;
+
+        if (currentNote.isEmpty()) {
+            order.setNote(line);
+            return;
+        }
+
+        String combined = currentNote + "\n" + line;
+        if (combined.length() > 500) {
+            combined = combined.substring(combined.length() - 500);
+        }
+
+        order.setNote(combined);
     }
 }

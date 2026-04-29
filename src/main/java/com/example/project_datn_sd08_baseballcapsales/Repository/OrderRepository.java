@@ -43,4 +43,5 @@ public interface OrderRepository extends JpaRepository<Order, Integer> {
 
     @Query(value = "SELECT FORMAT(orderDate, 'yyyy-MM') AS month, COUNT(*) AS amount FROM Orders GROUP BY FORMAT(orderDate, 'yyyy-MM') ORDER BY month", nativeQuery = true)
     List<Object[]> countByMonth();
-}
+
+    Optional<Order> findByTrackingCodeIgnoreCase(String trackingCode);}
