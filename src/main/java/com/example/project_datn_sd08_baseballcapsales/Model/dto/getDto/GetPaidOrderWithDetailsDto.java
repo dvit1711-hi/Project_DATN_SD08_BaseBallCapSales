@@ -115,6 +115,14 @@ public class GetPaidOrderWithDetailsDto {
         private String sizeName;
         private String imageUrl;
 
+        private Integer returnedQuantity;
+        private Integer returnableQuantity;
+        private Integer remainingQuantity;
+        private BigDecimal returnedAmount;
+
+        private Integer shippingReturnedQuantity;
+        private Integer completedReturnedQuantity;
+
         public OrderItemDetailsDto(OrderDetail detail) {
             this.orderDetailId = detail.getId();
 
@@ -138,8 +146,22 @@ public class GetPaidOrderWithDetailsDto {
                 }
             }
 
-            this.quantity = detail.getQuantity();
+            int boughtQuantity = detail.getQuantity() == null ? 0 : detail.getQuantity();
+            int returnedQty = detail.getReturnedQuantity() == null ? 0 : detail.getReturnedQuantity();
+            int shippingReturnedQty = detail.getShippingReturnedQuantity() == null ? 0 : detail.getShippingReturnedQuantity();
+            int completedReturnedQty = detail.getCompletedReturnedQuantity() == null ? 0 : detail.getCompletedReturnedQuantity();
+            int remainingQty = Math.max(0, boughtQuantity - returnedQty);
+
+            this.quantity = boughtQuantity;
+            this.returnedQuantity = returnedQty;
+            this.shippingReturnedQuantity = shippingReturnedQty;
+            this.completedReturnedQuantity = completedReturnedQty;
+            this.returnableQuantity = remainingQty;
+            this.remainingQuantity = remainingQty;
             this.price = detail.getPrice();
+
+            BigDecimal safePrice = detail.getPrice() == null ? BigDecimal.ZERO : detail.getPrice();
+            this.returnedAmount = safePrice.multiply(BigDecimal.valueOf(returnedQty));
         }
     }
 }

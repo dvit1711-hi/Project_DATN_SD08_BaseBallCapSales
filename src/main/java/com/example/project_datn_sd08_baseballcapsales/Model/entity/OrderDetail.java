@@ -34,4 +34,30 @@ public class OrderDetail {
 
     @Column(name = "price", nullable = false, precision = 12, scale = 2)
     private BigDecimal price;
+
+    @Column(name = "returnedQuantity", nullable = false)
+    private Integer returnedQuantity = 0;
+
+    @Column(name = "shippingReturnedQuantity", nullable = false)
+    private Integer shippingReturnedQuantity = 0;
+
+    @Column(name = "completedReturnedQuantity", nullable = false)
+    private Integer completedReturnedQuantity = 0;
+
+    @PrePersist
+    public void prePersist() {
+        if (this.returnedQuantity == null) {
+            this.returnedQuantity = 0;
+        }
+
+        if (this.shippingReturnedQuantity == null) {
+            this.shippingReturnedQuantity = 0;
+        }
+
+        if (this.completedReturnedQuantity == null) {
+            this.completedReturnedQuantity = 0;
+        }
+    }
+
+
 }
