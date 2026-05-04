@@ -1,5 +1,6 @@
 package com.example.project_datn_sd08_baseballcapsales.Model.entity;
 
+import com.example.project_datn_sd08_baseballcapsales.Model.enums.PaymentStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -35,15 +36,14 @@ public class Payment {
     @Column(name = "amount", precision = 18, scale = 2)
     private BigDecimal amount;
 
-    @Size(max = 50)
     @Nationalized
     @Column(name = "method", length = 50)
     private String method;
 
-    @Size(max = 50)
+    @Enumerated(EnumType.STRING)
     @Nationalized
     @Column(name = "status", length = 50)
-    private String status;
+    private PaymentStatus status;
 
     @CreationTimestamp
     @ColumnDefault("getdate()")

@@ -22,4 +22,6 @@ public interface PaymentRepository extends JpaRepository<Payment, Integer> {
 
     @Query("select coalesce(sum(p.amount), 0) from Payment p where upper(p.status) in ('PAID', 'SUCCESS')")
     BigDecimal totalSuccessfulPayment();
+
+    Payment findByOrderID(Order order);
 }

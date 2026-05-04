@@ -5,6 +5,8 @@ import com.example.project_datn_sd08_baseballcapsales.Model.dto.PutDto.PutOfflin
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.PutDto.PutOfflineOrderItemDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.*;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.*;
+import com.example.project_datn_sd08_baseballcapsales.Model.enums.OrderStatus;
+import com.example.project_datn_sd08_baseballcapsales.Model.enums.PaymentStatus;
 import com.example.project_datn_sd08_baseballcapsales.Repository.*;
 import com.example.project_datn_sd08_baseballcapsales.Service.PosService;
 import lombok.RequiredArgsConstructor;
@@ -52,12 +54,14 @@ public class PosServiceImpl implements PosService {
         Account employee = getCurrentEmployee(email);
 
         return orderRepository
-                .findByEmployeeID_IdAndOrderTypeIgnoreCaseAndStatusIgnoreCaseOrderByOrderDateDesc(
-                        employee.getId(), "OFFLINE", "Pending"
+                .findByEmployeeID_IdAndOrderTypeIgnoreCaseAndStatusOrderByOrderDateDesc(
+                        employee.getId(),
+                        "OFFLINE",
+                        OrderStatus.PENDING_PAYMENT
                 )
                 .stream()
                 .map(this::mapOrderDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -65,9 +69,12 @@ public class PosServiceImpl implements PosService {
     public PosOrderGetDto createOfflineOrder(PostOfflineOrderDto dto, String email) {
         Account employee = getCurrentEmployee(email);
 
-        long pendingCount = orderRepository.countByEmployeeID_IdAndOrderTypeIgnoreCaseAndStatusIgnoreCase(
-                employee.getId(), "OFFLINE", "Pending"
-        );
+        long pendingCount = orderRepository
+                .countByEmployeeID_IdAndOrderTypeIgnoreCaseAndStatus(
+                        employee.getId(),
+                        "OFFLINE",
+                        OrderStatus.PENDING_PAYMENT
+                );
 
         if (pendingCount >= 10) {
             throw new RuntimeException("Mỗi nhân viên chỉ được giữ tối đa 10 đơn hàng chờ");
@@ -81,7 +88,7 @@ public class PosServiceImpl implements PosService {
 
         Order order = new Order();
         order.setOrderType("OFFLINE");
-        order.setStatus("Pending");
+        order.setStatus(OrderStatus.PENDING_PAYMENT);
         order.setEmployeeID(employee);
         order.setAccountID(customer);
 
@@ -367,11 +374,11 @@ public class PosServiceImpl implements PosService {
         payment.setMethod(method);
 
         if ("CASH".equals(method)) {
-            order.setStatus("Completed");
-            payment.setStatus("SUCCESS");
+            order.setStatus(OrderStatus.PAID);
+            payment.setStatus(PaymentStatus.PAID);
         } else {
-            order.setStatus("PENDING_PAYMENT");
-            payment.setStatus("UNPAID");
+            order.setStatus(OrderStatus.PENDING_PAYMENT);
+            payment.setStatus(PaymentStatus.UNPAID);
         }
 
         orderRepository.save(order);
@@ -389,11 +396,11 @@ public class PosServiceImpl implements PosService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng chờ"));
 
         if (!"OFFLINE".equalsIgnoreCase(order.getOrderType())
-                || !"Pending".equalsIgnoreCase(order.getStatus())) {
-            throw new RuntimeException("Chỉ được đóng đơn OFFLINE đang ở trạng thái Pending");
+                || order.getStatus() != OrderStatus.PENDING_PAYMENT) {
+            throw new RuntimeException("Chỉ cancel đơn pending");
         }
 
-        order.setStatus("Cancelled");
+        order.setStatus(OrderStatus.CANCELLED);
         orderRepository.save(order);
     }
 
@@ -418,8 +425,8 @@ public class PosServiceImpl implements PosService {
     private Order getPendingOrder(Integer orderId, String email) {
         Order order = getOwnedOfflineOrder(orderId, email);
 
-        if (!"Pending".equalsIgnoreCase(order.getStatus())) {
-            throw new RuntimeException("Chỉ thao tác được với đơn Pending");
+        if (order.getStatus() != OrderStatus.PENDING_PAYMENT) {
+            throw new RuntimeException("Chỉ thao tác được với đơn PENDING_PAYMENT");
         }
 
         return order;
@@ -614,7 +621,7 @@ public class PosServiceImpl implements PosService {
         dto.setOrderId(order.getId());
         dto.setOrderDate(order.getOrderDate());
         dto.setOrderType(order.getOrderType());
-        dto.setStatus(order.getStatus());
+        dto.setStatus(order.getStatus()); // enum
 
         dto.setCustomerId(order.getAccountID() != null ? order.getAccountID().getId() : null);
         dto.setCustomerName(order.getCustomerName());
@@ -633,8 +640,9 @@ public class PosServiceImpl implements PosService {
         dto.setTrackingCode(order.getTrackingCode());
 
         dto.setPaymentMethod(latestPayment != null ? normalizePosPaymentMethod(latestPayment.getMethod()) : null);
-        dto.setPaymentStatus(latestPayment != null ? normalizePosPaymentStatus(latestPayment.getStatus()) : null);
-
+        dto.setPaymentStatus(
+                latestPayment != null ? latestPayment.getStatus() : null
+        );
         dto.setItems(details.stream().map(this::mapOrderItemDto).collect(Collectors.toList()));
         return dto;
     }
@@ -854,7 +862,7 @@ public class PosServiceImpl implements PosService {
         String normalized = status.trim().toUpperCase();
         return switch (normalized) {
             case "SUCCESS", "PAID" -> "PAID";
-            case "UNPAID", "PENDING", "PENDING_PAYMENT" -> "UNPAID";
+            case "UNPAID", "PENDING_PAYMENT" -> "UNPAID";
             case "CANCELLED", "CANCELED" -> "CANCELLED";
             default -> normalized;
         };

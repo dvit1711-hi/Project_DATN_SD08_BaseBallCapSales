@@ -2,6 +2,8 @@ package com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto;
 
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Order;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.OrderDetail;
+import com.example.project_datn_sd08_baseballcapsales.Model.enums.OrderStatus;
+import com.example.project_datn_sd08_baseballcapsales.Model.enums.PaymentStatus;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -37,19 +39,19 @@ public class GetPaidOrderWithDetailsDto {
     private String customerPhone;
 
     private String orderDate;
-    private String orderStatus;
+    private OrderStatus orderStatus;
     private String shippingAddress;
     private String note;
     private String couponCode;
     private BigDecimal totalAmount;
-    private String paymentStatus;
+    private PaymentStatus paymentStatus;
     private String paymentMethod;
 
     private List<OrderItemDetailsDto> items;
 
     public GetPaidOrderWithDetailsDto(
             Order order,
-            String paymentStatus,
+            PaymentStatus paymentStatus,
             String paymentMethod,
             List<OrderDetail> orderDetails
     ) {

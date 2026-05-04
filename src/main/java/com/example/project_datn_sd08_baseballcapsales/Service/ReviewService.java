@@ -5,6 +5,7 @@ import com.example.project_datn_sd08_baseballcapsales.Model.dto.PutDto.PutReview
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetPaidOrderWithDetailsDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetReviewDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.*;
+import com.example.project_datn_sd08_baseballcapsales.Model.enums.PaymentStatus;
 import com.example.project_datn_sd08_baseballcapsales.Repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -131,12 +132,27 @@ public class ReviewService {
 
     public List<GetPaidOrderWithDetailsDto> getPaidOrdersWithDetailsForAccount(Integer accountId) {
         List<Order> paidOrders = orderRepository.findPaidOrdersByAccountId(accountId);
+
         return paidOrders.stream().map(order -> {
-            var payment = paymentRepository.findTopByOrderIDOrderByIdDesc(order);
-            String paymentStatus = payment.map(Payment::getStatus).orElse("UNKNOWN");
-            String paymentMethod = payment.map(Payment::getMethod).orElse("UNKNOWN");
+
+            var paymentOpt = paymentRepository.findTopByOrderIDOrderByIdDesc(order);
+
+            PaymentStatus paymentStatus = paymentOpt
+                    .map(Payment::getStatus)
+                    .orElse(PaymentStatus.UNKNOWN);
+
+            String paymentMethod = paymentOpt
+                    .map(Payment::getMethod)
+                    .orElse("UNKNOWN");
+
             var orderDetails = orderDetailRepository.findByOrderID_Id(order.getId());
-            return new GetPaidOrderWithDetailsDto(order, paymentStatus, paymentMethod, orderDetails);
+
+            return new GetPaidOrderWithDetailsDto(
+                    order,
+                    paymentStatus,   // ✅ enum
+                    paymentMethod,
+                    orderDetails
+            );
         }).toList();
     }
 
