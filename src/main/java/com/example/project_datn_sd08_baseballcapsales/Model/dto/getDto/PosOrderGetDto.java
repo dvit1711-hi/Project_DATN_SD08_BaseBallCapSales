@@ -1,5 +1,7 @@
 package com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto;
 
+import com.example.project_datn_sd08_baseballcapsales.Model.enums.OrderStatus;
+import com.example.project_datn_sd08_baseballcapsales.Model.enums.PaymentStatus;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Getter;
 import lombok.Setter;
@@ -17,7 +19,7 @@ public class PosOrderGetDto {
     private LocalDateTime orderDate;
 
     private String orderType;
-    private String status;
+    private OrderStatus status;
 
     private Integer customerId;
     private String customerName;
@@ -36,7 +38,7 @@ public class PosOrderGetDto {
     private String trackingCode;
 
     private String paymentMethod;
-    private String paymentStatus;
+    private PaymentStatus paymentStatus;
 
     private List<PosOrderItemGetDto> items;
 }

@@ -1,6 +1,7 @@
 package com.example.project_datn_sd08_baseballcapsales.Repository;
 
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Order;
+import com.example.project_datn_sd08_baseballcapsales.Model.enums.OrderStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -21,7 +22,18 @@ public interface OrderRepository extends JpaRepository<Order, Integer> {
     List<Order> findByEmployeeID_IdAndOrderTypeIgnoreCaseAndStatusIgnoreCaseOrderByOrderDateDesc(
             Integer employeeId,
             String orderType,
-            String status
+            OrderStatus status
+    );
+    List<Order> findByEmployeeID_IdAndOrderTypeIgnoreCaseAndStatusOrderByOrderDateDesc(
+            Integer employeeId,
+            String orderType,
+            OrderStatus status
+    );
+
+    long countByEmployeeID_IdAndOrderTypeIgnoreCaseAndStatus(
+            Integer employeeId,
+            String orderType,
+            OrderStatus status
     );
 
     Optional<Order> findByIdAndEmployeeID_Id(Integer orderId, Integer employeeId);
@@ -45,3 +57,5 @@ public interface OrderRepository extends JpaRepository<Order, Integer> {
     List<Object[]> countByMonth();
 
     Optional<Order> findByTrackingCodeIgnoreCase(String trackingCode);}
+
+

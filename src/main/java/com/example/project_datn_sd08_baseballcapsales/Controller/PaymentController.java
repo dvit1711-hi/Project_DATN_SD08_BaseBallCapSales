@@ -4,6 +4,8 @@ import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetPaidOr
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.payload.request.PostCompletedReturnRequest;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.payload.request.PostShippingReturnDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Order;
+import com.example.project_datn_sd08_baseballcapsales.Model.enums.OrderStatus;
+import com.example.project_datn_sd08_baseballcapsales.Model.enums.PaymentStatus;
 import com.example.project_datn_sd08_baseballcapsales.Service.PaymentService;
 import com.example.project_datn_sd08_baseballcapsales.payload.reponse.MBBankPaymentInfoResponse;
 import com.example.project_datn_sd08_baseballcapsales.payload.request.CheckoutRequest;
@@ -91,8 +93,17 @@ public class PaymentController {
     @PutMapping("/orders/{orderId}/confirm")
     public ResponseEntity<Map<String, Object>> confirmPayment(@PathVariable Integer orderId) {
         Order order = paymentService.confirmPayment(orderId);
+
+        PaymentStatus paymentStatus =
+                paymentService.getLatestPaymentStatusForOrder(order.getId());
+
         return ResponseEntity.ok(
-                buildOrderStatusResponse(order.getId(), order.getStatus(), "PAID", "Đã xác nhận thanh toán")
+                buildOrderStatusResponse(
+                        order.getId(),
+                        order.getStatus(),
+                        paymentStatus,
+                        "Đã xác nhận thanh toán"
+                )
         );
     }
 
@@ -102,16 +113,29 @@ public class PaymentController {
             @PathVariable Integer orderId
     ) {
         Order order = paymentService.cancelOrderForAccount(accountId, orderId);
+
+
         return ResponseEntity.ok(
-                buildOrderStatusResponse(order.getId(), order.getStatus(), "CANCELLED", "Đã hủy đơn hàng")
+                buildOrderStatusResponse(
+                        order.getId(),
+                        order.getStatus(),
+                        PaymentStatus.CANCELLED,
+                        "Đã hủy đơn hàng"
+                )
         );
     }
 
     @PutMapping("/orders/{orderId}/cancel")
     public ResponseEntity<Map<String, Object>> cancelOrderByAdmin(@PathVariable Integer orderId) {
         Order order = paymentService.cancelOrderByAdmin(orderId);
+
         return ResponseEntity.ok(
-                buildOrderStatusResponse(order.getId(), order.getStatus(), "CANCELLED", "Đã hủy đơn hàng")
+                buildOrderStatusResponse(
+                        order.getId(),
+                        order.getStatus(),
+                        PaymentStatus.CANCELLED,
+                        "Đã hủy đơn hàng"
+                )
         );
     }
 
@@ -124,27 +148,51 @@ public class PaymentController {
                 orderId,
                 request != null ? request.getReason() : null
         );
-        String latestPaymentStatus = paymentService.getLatestPaymentStatusForOrder(order.getId());
+
+        PaymentStatus paymentStatus =
+                paymentService.getLatestPaymentStatusForOrder(order.getId());
+
         return ResponseEntity.ok(
-                buildOrderStatusResponse(order.getId(), order.getStatus(), latestPaymentStatus, "Đã quay lại trạng thái trước")
+                buildOrderStatusResponse(
+                        order.getId(),
+                        order.getStatus(),
+                        paymentStatus,
+                        "Đã quay lại trạng thái trước"
+                )
         );
     }
 
     @PutMapping("/orders/{orderId}/start-shipping")
     public ResponseEntity<Map<String, Object>> startShippingByAdmin(@PathVariable Integer orderId) {
         Order order = paymentService.startShippingByAdmin(orderId);
-        String latestPaymentStatus = paymentService.getLatestPaymentStatusForOrder(order.getId());
+
+        PaymentStatus paymentStatus =
+                paymentService.getLatestPaymentStatusForOrder(order.getId());
+
         return ResponseEntity.ok(
-                buildOrderStatusResponse(order.getId(), order.getStatus(), latestPaymentStatus, "Đã chuyển sang chờ giao hàng")
+                buildOrderStatusResponse(
+                        order.getId(),
+                        order.getStatus(),
+                        paymentStatus,
+                        "Đã chuyển sang chờ giao hàng"
+                )
         );
     }
 
     @PutMapping("/orders/{orderId}/complete-delivery")
     public ResponseEntity<Map<String, Object>> completeDeliveryByAdmin(@PathVariable Integer orderId) {
         Order order = paymentService.completeDeliveryByAdmin(orderId);
-        String latestPaymentStatus = paymentService.getLatestPaymentStatusForOrder(order.getId());
+
+        PaymentStatus paymentStatus =
+                paymentService.getLatestPaymentStatusForOrder(order.getId());
+
         return ResponseEntity.ok(
-                buildOrderStatusResponse(order.getId(), order.getStatus(), latestPaymentStatus, "Đã giao thành công")
+                buildOrderStatusResponse(
+                        order.getId(),
+                        order.getStatus(),
+                        paymentStatus,
+                        "Đã giao thành công"
+                )
         );
     }
 
@@ -164,13 +212,13 @@ public class PaymentController {
 
     private Map<String, Object> buildOrderStatusResponse(
             Integer orderId,
-            String orderStatus,
-            String paymentStatus,
+            OrderStatus orderStatus,
+            PaymentStatus paymentStatus,
             String message
     ) {
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("orderId", orderId);
-        response.put("status", orderStatus);
+        response.put("status", orderStatus);         // enum trả ra JSON = string OK
         response.put("orderStatus", orderStatus);
         response.put("paymentStatus", paymentStatus);
         response.put("message", message);

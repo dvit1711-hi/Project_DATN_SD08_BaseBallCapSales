@@ -1,6 +1,7 @@
 package com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto;
 
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Order;
+import com.example.project_datn_sd08_baseballcapsales.Model.enums.OrderStatus;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -22,7 +23,7 @@ public class GetOrderDto {
 
     private Integer id;
     private String orderDate;
-    private String status;
+    private OrderStatus status;
     private BigDecimal totalAmount;
     private String accountCode;
     private String couponCode;

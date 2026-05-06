@@ -2,6 +2,8 @@ package com.example.project_datn_sd08_baseballcapsales.Service;
 
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.payload.request.PostShippingReturnDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.payload.request.PostCompletedReturnRequest;
+import com.example.project_datn_sd08_baseballcapsales.Model.enums.OrderStatus;
+import com.example.project_datn_sd08_baseballcapsales.Model.enums.PaymentStatus;
 import com.example.project_datn_sd08_baseballcapsales.payload.request.GhnShippingFeeRequest;
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.GetPaidOrderWithDetailsDto;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.*;
@@ -119,6 +121,7 @@ public class PaymentService {
     @Value("${ghn.default-height:10}")
     private Integer ghnDefaultHeight;
 
+
     @Transactional
     public Order checkoutCOD(Integer accountId) {
         return checkout(accountId, "COD");
@@ -138,6 +141,7 @@ public class PaymentService {
     public Order checkout(Integer accountId, String method, List<Integer> selectedCartItemIds, String couponCode) {
         return checkout(accountId, method, selectedCartItemIds, couponCode, null);
     }
+
 
     @Transactional
     public Order checkout(Integer accountId, String method, List<Integer> selectedCartItemIds, String couponCode, BigDecimal shippingFee) {
@@ -177,7 +181,7 @@ public class PaymentService {
         Order order = new Order();
         order.setAccountID(account);
         order.setOrderType("ONLINE");
-        order.setStatus("PENDING_PAYMENT");
+        order.setStatus(OrderStatus.PENDING_PAYMENT);
         Address address = addressRepository.findTopByAccount_IdOrderByIdDesc(accountId);
         order.setShippingAddress(formatAddressSnapshot(address));
         order = orderRepository.save(order);
@@ -242,7 +246,7 @@ public class PaymentService {
         payment.setOrderID(order);
         payment.setAmount(total);
         payment.setMethod(normalizedMethod);
-        payment.setStatus("UNPAID");
+        payment.setStatus(PaymentStatus.UNPAID);
         paymentRepository.save(payment);
 
         cartItemRepository.deleteAll(cartItems);
@@ -438,40 +442,44 @@ public class PaymentService {
         return response;
     }
 
+    private Order findOrder(Integer orderId) {
+        return orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng"));
+    }
+
+    private Payment findPayment(Order order) {
+        return paymentRepository.findTopByOrderIDOrderByIdDesc(order)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy thanh toán"));
+    }
+    // =========================
+    // CONFIRM PAYMENT
+    // =========================
     @Transactional
     public Order confirmPayment(Integer orderId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng"));
+        Order order = findOrder(orderId);
+        Payment payment = findPayment(order);
 
-        Payment payment = paymentRepository.findTopByOrderIDOrderByIdDesc(order)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy thanh toán của đơn hàng"));
-
-        String currentOrderStatus = normalizeOrderStatus(order.getStatus());
-        String currentPaymentStatus = normalizePaymentStatus(payment.getStatus());
-
-        if ("CANCELLED".equals(currentOrderStatus) || "CANCELLED".equals(currentPaymentStatus)) {
-            throw new RuntimeException("Không thể xác nhận thanh toán cho đơn đã hủy");
+        if (order.getStatus() == OrderStatus.CANCELLED ||
+                payment.getStatus() == PaymentStatus.CANCELLED) {
+            throw new RuntimeException("Đơn đã hủy");
         }
 
-        if ("PAID".equals(currentOrderStatus) || "PAID".equals(currentPaymentStatus)) {
-            throw new RuntimeException("Đơn hàng đã được thanh toán trước đó");
+        if (payment.getStatus() == PaymentStatus.PAID) {
+            throw new RuntimeException("Đã thanh toán");
         }
 
-        payment.setStatus("PAID");
-        paymentRepository.save(payment);
+        payment.setStatus(PaymentStatus.PAID);
 
-        String orderType = order.getOrderType() == null
-                ? ""
-                : order.getOrderType().trim().toUpperCase(Locale.ROOT);
-
-        if ("OFFLINE".equals(orderType)) {
-            order.setStatus("PAID");
+        if ("OFFLINE".equalsIgnoreCase(order.getOrderType())) {
+            order.setStatus(OrderStatus.PAID);
         } else {
-            order.setStatus("SHIPPING");
+            order.setStatus(OrderStatus.CONFIRMED);
         }
 
+        paymentRepository.save(payment);
         return orderRepository.save(order);
     }
+
 
     @Transactional
     public Order cancelOrderForAccount(Integer accountId, Integer orderId) {
@@ -494,112 +502,127 @@ public class PaymentService {
 
     @Transactional
     public Order revertOrderStatusByAdmin(Integer orderId, String reason) {
-        String normalizedReason = reason == null ? "" : reason.trim();
-        if (normalizedReason.isEmpty()) {
-            throw new RuntimeException("Vui lòng nhập lý do khi quay lại trạng thái");
+
+        if (reason == null || reason.trim().isEmpty()) {
+            throw new RuntimeException("Vui lòng nhập lý do");
         }
 
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng"));
+        Order order = findOrder(orderId);
+        appendRevertReason(order, reason.trim());
 
-        appendRevertReason(order, normalizedReason);
+        Payment payment = paymentRepository
+                .findTopByOrderIDOrderByIdDesc(order)
+                .orElse(null);
 
-        Payment payment = paymentRepository.findTopByOrderIDOrderByIdDesc(order).orElse(null);
+        OrderStatus orderStatus = order.getStatus();
+        PaymentStatus paymentStatus = payment != null
+                ? payment.getStatus()
+                : PaymentStatus.UNKNOWN;
 
-        String currentOrderStatus = normalizeOrderStatus(order.getStatus());
-        String currentPaymentStatus = payment != null
-                ? normalizePaymentStatus(payment.getStatus())
-                : "UNKNOWN";
-
-        boolean isPending = "PENDING_PAYMENT".equals(currentOrderStatus)
-                && ("UNPAID".equals(currentPaymentStatus) || "UNKNOWN".equals(currentPaymentStatus));
-        if (isPending) {
-            throw new RuntimeException("Đơn hàng đang ở trạng thái ban đầu, không thể quay lại thêm");
+        // ❌ không cho revert trạng thái ban đầu
+        if (orderStatus == OrderStatus.PENDING_PAYMENT &&
+                (paymentStatus == PaymentStatus.UNPAID || paymentStatus == PaymentStatus.UNKNOWN)) {
+            throw new RuntimeException("Đơn đang ở trạng thái ban đầu");
         }
 
-        if ("PAID".equals(currentOrderStatus) || "PAID".equals(currentPaymentStatus)) {
-            String paymentMethod = payment != null
+        // =====================
+        // CASE: ĐÃ THANH TOÁN
+        // =====================
+        if (orderStatus == OrderStatus.PAID || paymentStatus == PaymentStatus.PAID) {
+
+            String method = payment != null
                     ? normalizePaymentMethod(payment.getMethod())
                     : "";
 
-            if ("COD".equals(paymentMethod)
-                    && ("SHIPPING".equals(currentOrderStatus) || "PAID".equals(currentOrderStatus))) {
+            // COD
+            if ("COD".equals(method) &&
+                    (orderStatus == OrderStatus.SHIPPING || orderStatus == OrderStatus.PAID)) {
+
                 if (payment != null) {
-                    payment.setStatus("UNPAID");
+                    payment.setStatus(PaymentStatus.UNPAID);
                     paymentRepository.save(payment);
                 }
-                order.setStatus("SHIPPING");
-                orderRepository.save(order);
-                return order;
+
+                order.setStatus(OrderStatus.SHIPPING);
+                return orderRepository.save(order);
             }
 
-            if (!"COD".equals(paymentMethod)) {
-                if (payment != null && !"PAID".equals(currentPaymentStatus)) {
-                    payment.setStatus("PAID");
+            // NON COD
+            if (!"COD".equals(method)) {
+
+                if (payment != null && paymentStatus != PaymentStatus.PAID) {
+                    payment.setStatus(PaymentStatus.PAID);
                     paymentRepository.save(payment);
                 }
-                order.setStatus("SHIPPING");
-                orderRepository.save(order);
-                return order;
+
+                order.setStatus(OrderStatus.SHIPPING);
+                return orderRepository.save(order);
             }
 
+            // fallback
             if (payment != null) {
-                payment.setStatus("UNPAID");
+                payment.setStatus(PaymentStatus.UNPAID);
                 paymentRepository.save(payment);
             }
-            order.setStatus("PENDING_PAYMENT");
-            orderRepository.save(order);
-            return order;
+
+            order.setStatus(OrderStatus.PENDING_PAYMENT);
+            return orderRepository.save(order);
         }
 
-        if ("SHIPPING".equals(currentOrderStatus)) {
-            order.setStatus("PENDING_PAYMENT");
-            orderRepository.save(order);
-            return order;
+        // =====================
+        // CASE: SHIPPING
+        // =====================
+        if (orderStatus == OrderStatus.SHIPPING) {
+            order.setStatus(OrderStatus.PENDING_PAYMENT);
+            return orderRepository.save(order);
         }
 
-        if ("CANCELLED".equals(currentOrderStatus) || "CANCELLED".equals(currentPaymentStatus)) {
-            List<OrderDetail> details = orderDetailRepository.findByOrderID_Id(order.getId());
-            for (OrderDetail detail : details) {
-                ProductColor productColor = detail.getProductColorID();
-                if (productColor == null) {
-                    continue;
+        // =====================
+        // CASE: CANCELLED
+        // =====================
+        if (orderStatus == OrderStatus.CANCELLED ||
+                paymentStatus == PaymentStatus.CANCELLED) {
+
+            List<OrderDetail> details =
+                    orderDetailRepository.findByOrderID_Id(order.getId());
+
+            for (OrderDetail d : details) {
+                ProductColor pc = d.getProductColorID();
+                if (pc == null) continue;
+
+                int stock = pc.getStockQuantity() == null ? 0 : pc.getStockQuantity();
+                int qty = d.getQuantity() == null ? 0 : d.getQuantity();
+
+                if (stock < qty) {
+                    throw new RuntimeException("Không đủ tồn kho để khôi phục");
                 }
 
-                Integer currentStock = productColor.getStockQuantity() == null ? 0 : productColor.getStockQuantity();
-                Integer quantity = detail.getQuantity() == null ? 0 : detail.getQuantity();
-
-                if (currentStock < quantity) {
-                    String productName = productColor.getProductID() != null
-                            ? productColor.getProductID().getProductName()
-                            : "Sản phẩm";
-                    throw new RuntimeException("Không đủ tồn kho để khôi phục đơn: " + productName);
-                }
-
-                productColor.setStockQuantity(currentStock - quantity);
-                productColorRepository.save(productColor);
+                pc.setStockQuantity(stock - qty);
+                productColorRepository.save(pc);
             }
 
             DiscountCoupon coupon = order.getCouponID();
             if (coupon != null) {
-                Integer currentQuantity = coupon.getQuantity() == null ? 0 : coupon.getQuantity();
-                if (currentQuantity <= 0) {
-                    throw new RuntimeException("Không đủ lượt mã giảm giá để khôi phục đơn");
+                int current = coupon.getQuantity() == null ? 0 : coupon.getQuantity();
+
+                if (current <= 0) {
+                    throw new RuntimeException("Không đủ lượt coupon");
                 }
-                coupon.setQuantity(currentQuantity - 1);
+
+                coupon.setQuantity(current - 1);
                 discountCouponRepository.save(coupon);
             }
 
             if (payment != null) {
-                payment.setStatus("UNPAID");
+                payment.setStatus(PaymentStatus.UNPAID);
                 paymentRepository.save(payment);
             }
-            order.setStatus("PENDING_PAYMENT");
-            orderRepository.save(order);
-            return order;
+
+            order.setStatus(OrderStatus.PENDING_PAYMENT);
+            return orderRepository.save(order);
         }
 
-        throw new RuntimeException("Trạng thái hiện tại không hỗ trợ quay lại");
+        throw new RuntimeException("Không hỗ trợ revert trạng thái này");
     }
 
     private void appendRevertReason(Order order, String reason) {
@@ -627,26 +650,26 @@ public class PaymentService {
         Payment payment = paymentRepository.findTopByOrderIDOrderByIdDesc(order)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy thanh toán của đơn hàng"));
 
-        String currentOrderStatus = normalizeOrderStatus(order.getStatus());
-        String currentPaymentStatus = normalizePaymentStatus(payment.getStatus());
+        OrderStatus orderStatus = order.getStatus();
+        PaymentStatus paymentStatus = payment.getStatus();
 
-        if ("CANCELLED".equals(currentOrderStatus) || "CANCELLED".equals(currentPaymentStatus)) {
-            throw new RuntimeException("Không thể bắt đầu giao hàng cho đơn đã hủy");
+        if (orderStatus == OrderStatus.CANCELLED || paymentStatus == PaymentStatus.CANCELLED) {
+            throw new RuntimeException("Không thể xác nhận");
         }
 
-        if ("PAID".equals(currentOrderStatus)) {
-            throw new RuntimeException("Đơn hàng đã hoàn tất");
+        if (orderStatus == OrderStatus.PAID || paymentStatus == PaymentStatus.PAID) {
+            throw new RuntimeException("Đã thanh toán");
         }
 
-        if ("SHIPPING".equals(currentOrderStatus)) {
-            return order;
+        payment.setStatus(PaymentStatus.PAID);
+
+        if (order.getOrderType().equalsIgnoreCase("OFFLINE")) {
+            order.setStatus(OrderStatus.PAID);
+        } else {
+            order.setStatus(OrderStatus.CONFIRMED);
         }
 
-        if (!"PENDING_PAYMENT".equals(currentOrderStatus)) {
-            throw new RuntimeException("Trạng thái đơn hàng không hợp lệ để bắt đầu giao");
-        }
-
-        order.setStatus("SHIPPING");
+        order.setStatus(OrderStatus.SHIPPING);
         return orderRepository.save(order);
     }
 
@@ -656,26 +679,25 @@ public class PaymentService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng"));
 
         Payment payment = paymentRepository.findTopByOrderIDOrderByIdDesc(order)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy thanh toán của đơn hàng"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy thanh toán"));
 
-        String currentOrderStatus = normalizeOrderStatus(order.getStatus());
-        String currentPaymentStatus = normalizePaymentStatus(payment.getStatus());
-
-        if ("CANCELLED".equals(currentOrderStatus) || "CANCELLED".equals(currentPaymentStatus)) {
-            throw new RuntimeException("Không thể hoàn tất giao hàng cho đơn đã hủy");
+        if (order.getStatus() == OrderStatus.CANCELLED ||
+                payment.getStatus() == PaymentStatus.CANCELLED) {
+            throw new RuntimeException("Không thể hoàn tất đơn đã hủy");
         }
 
-        if ("PAID".equals(currentOrderStatus)) {
-            throw new RuntimeException("Đơn hàng đã hoàn tất trước đó");
+        if (order.getStatus() == OrderStatus.PAID) {
+            throw new RuntimeException("Đơn đã hoàn tất trước đó");
         }
 
-        if (!"SHIPPING".equals(currentOrderStatus)) {
-            throw new RuntimeException("Chỉ có thể hoàn tất khi đơn đang vận chuyển");
+        if (order.getStatus() != OrderStatus.SHIPPING) {
+            throw new RuntimeException("Chỉ hoàn tất khi đang giao");
         }
 
-        order.setStatus("PAID");
-        if (!"PAID".equals(currentPaymentStatus)) {
-            payment.setStatus("PAID");
+        order.setStatus(OrderStatus.PAID);
+
+        if (payment.getStatus() != PaymentStatus.PAID) {
+            payment.setStatus(PaymentStatus.PAID);
             paymentRepository.save(payment);
         }
 
@@ -683,30 +705,36 @@ public class PaymentService {
     }
 
     @Transactional
-    public String getLatestPaymentStatusForOrder(Integer orderId) {
+    public PaymentStatus getLatestPaymentStatusForOrder(Integer orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng"));
 
         return paymentRepository.findTopByOrderIDOrderByIdDesc(order)
                 .map(Payment::getStatus)
-                .map(this::normalizePaymentStatus)
-                .orElse("UNKNOWN");
+                .orElse(PaymentStatus.UNKNOWN);
     }
 
     private GetPaidOrderWithDetailsDto mapOrderToDetailsDto(Order order) {
         var paymentOpt = paymentRepository.findTopByOrderIDOrderByIdDesc(order);
-        String paymentStatus = paymentOpt
+
+        PaymentStatus paymentStatus = paymentOpt
                 .map(Payment::getStatus)
-                .map(this::normalizePaymentStatus)
-                .orElse("UNKNOWN");
+                .orElse(PaymentStatus.UNKNOWN);
+
         String paymentMethod = paymentOpt
                 .map(Payment::getMethod)
-                .map(this::normalizePaymentMethod)
+                .map(this::normalizePaymentMethod) // cái này giữ string OK
                 .orElse("UNKNOWN");
 
-        List<OrderDetail> orderDetails = orderDetailRepository.findByOrderID_Id(order.getId());
-        GetPaidOrderWithDetailsDto dto = new GetPaidOrderWithDetailsDto(order, paymentStatus, paymentMethod, orderDetails);
-        dto.setOrderStatus(normalizeOrderStatus(order.getStatus()));
+        List<OrderDetail> orderDetails =
+                orderDetailRepository.findByOrderID_Id(order.getId());
+
+        GetPaidOrderWithDetailsDto dto =
+                new GetPaidOrderWithDetailsDto(order, paymentStatus, paymentMethod, orderDetails);
+
+        dto.setOrderStatus(order.getStatus());
+        dto.setPaymentStatus(paymentStatus);
+
         return dto;
     }
 
@@ -731,49 +759,54 @@ public class PaymentService {
     }
 
     private Order cancelOrderInternal(Order order, boolean restoreToCart) {
-        String currentOrderStatus = normalizeOrderStatus(order.getStatus());
-        if ("CANCELLED".equals(currentOrderStatus)) {
-            throw new RuntimeException("Đơn hàng đã được hủy trước đó");
+
+        if (order.getStatus() == OrderStatus.CANCELLED) {
+            throw new RuntimeException("Đơn đã hủy trước đó");
         }
 
-        Payment payment = paymentRepository.findTopByOrderIDOrderByIdDesc(order).orElse(null);
-        String paymentStatus = payment != null
-                ? normalizePaymentStatus(payment.getStatus())
-                : "";
+        Payment payment = paymentRepository
+                .findTopByOrderIDOrderByIdDesc(order)
+                .orElse(null);
 
-        if ("PAID".equals(paymentStatus) || "PAID".equals(currentOrderStatus)) {
-            throw new RuntimeException("Không thể hủy đơn hàng đã thanh toán");
+        if (payment != null && payment.getStatus() == PaymentStatus.PAID) {
+            throw new RuntimeException("Không thể hủy đơn đã thanh toán");
         }
 
-        List<OrderDetail> details = orderDetailRepository.findByOrderID_Id(order.getId());
+        if (order.getStatus() != OrderStatus.CONFIRMED &&
+                order.getStatus() != OrderStatus.SHIPPING) {
+            throw new RuntimeException("Phải ở CONFIRMED hoặc SHIPPING");
+        }
+
+        List<OrderDetail> details =
+                orderDetailRepository.findByOrderID_Id(order.getId());
+
         for (OrderDetail detail : details) {
             ProductColor productColor = detail.getProductColorID();
-            if (productColor == null) {
-                continue;
-            }
+            if (productColor == null) continue;
 
-            Integer currentStock = productColor.getStockQuantity() == null ? 0 : productColor.getStockQuantity();
-            Integer quantity = detail.getQuantity() == null ? 0 : detail.getQuantity();
-            productColor.setStockQuantity(currentStock + Math.max(quantity, 0));
+            int stock = productColor.getStockQuantity() == null ? 0 : productColor.getStockQuantity();
+            int qty = detail.getQuantity() == null ? 0 : detail.getQuantity();
+
+            productColor.setStockQuantity(stock + Math.max(qty, 0));
             productColorRepository.save(productColor);
 
-            if (restoreToCart && quantity > 0 && order.getAccountID() != null) {
-                restoreItemToCart(order.getAccountID(), productColor, quantity);
+            if (restoreToCart && qty > 0 && order.getAccountID() != null) {
+                restoreItemToCart(order.getAccountID(), productColor, qty);
             }
         }
 
         DiscountCoupon coupon = order.getCouponID();
         if (coupon != null) {
-            Integer currentQuantity = coupon.getQuantity() == null ? 0 : coupon.getQuantity();
-            coupon.setQuantity(currentQuantity + 1);
+            int current = coupon.getQuantity() == null ? 0 : coupon.getQuantity();
+            coupon.setQuantity(current + 1);
             discountCouponRepository.save(coupon);
         }
 
-        order.setStatus("CANCELLED");
+        order.setStatus(OrderStatus.CANCELLED);
         orderRepository.save(order);
 
         if (payment != null) {
-            payment.setStatus("CANCELLED");
+            payment.setStatus(PaymentStatus.CANCELLED);
             paymentRepository.save(payment);
         }
 
@@ -862,28 +895,14 @@ public class PaymentService {
         return discount.max(BigDecimal.ZERO).min(orderAmount);
     }
 
-    private String normalizePaymentStatus(String status) {
-        String normalized = status == null ? "" : status.trim().toUpperCase(Locale.ROOT);
-        return switch (normalized) {
-            case "SUCCESS" -> "PAID";
-            case "UNPAID", "PAID", "CANCELLED", "UNKNOWN" -> normalized;
-            case "CANCELED" -> "CANCELLED";
-            case "PENDING", "PENDING_PAYMENT" -> "UNPAID";
-            default -> normalized.isEmpty() ? "UNKNOWN" : normalized;
-        };
+    private PaymentStatus parsePaymentStatus(String status) {
+        try {
+            return PaymentStatus.valueOf(status.toUpperCase());
+        } catch (Exception e) {
+            return PaymentStatus.UNKNOWN;
+        }
     }
 
-    private String normalizeOrderStatus(String status) {
-        String normalized = status == null ? "" : status.trim().toUpperCase(Locale.ROOT);
-        return switch (normalized) {
-            case "COMPLETED" -> "PAID";
-            case "CANCELED" -> "CANCELLED";
-            case "PENDING" -> "PENDING_PAYMENT";
-            case "DELIVERING", "IN_TRANSIT" -> "SHIPPING";
-            case "PENDING_PAYMENT", "SHIPPING", "PAID", "CANCELLED", "PARTIAL_RETURNED", "RETURNED" -> normalized;
-            default -> normalized;
-        };
-    }
 
     private String normalizePaymentMethod(String method) {
         String normalized = method == null ? "" : method.trim().toUpperCase(Locale.ROOT);
@@ -1011,14 +1030,12 @@ public class PaymentService {
         Order order = findOrderOrThrow(orderId);
         Payment payment = paymentRepository.findTopByOrderIDOrderByIdDesc(order).orElse(null);
 
-        String orderStatus = normalizeOrderStatus(order.getStatus());
-        String paymentStatus = payment != null ? normalizePaymentStatus(payment.getStatus()) : "UNKNOWN";
-
-        if ("CANCELLED".equals(orderStatus) || "CANCELLED".equals(paymentStatus)) {
+        if (order.getStatus() == OrderStatus.CANCELLED ||
+                (payment != null && payment.getStatus() == PaymentStatus.CANCELLED)) {
             throw new RuntimeException("Không thể hoàn hàng cho đơn đã hủy");
         }
 
-        if (!"SHIPPING".equals(orderStatus)) {
+        if (order.getStatus() != OrderStatus.SHIPPING) {
             throw new RuntimeException("Chỉ đơn đang vận chuyển mới được hoàn hàng");
         }
 
@@ -1033,44 +1050,34 @@ public class PaymentService {
         updateOrderAndPaymentAfterReturn(order, payment, returnAmount);
 
         if (isAllOrderItemsReturned(order.getId())) {
-            order.setStatus("RETURNED");
+            order.setStatus(OrderStatus.RETURNED);
         } else {
-            // Hoàn hàng một phần khi đang vận chuyển thì vẫn tiếp tục giao
-            order.setStatus("SHIPPING");
-        }
-
-        updateOrderAndPaymentAfterReturn(order, payment, returnAmount);
-
-        if (isAllOrderItemsReturned(order.getId())) {
-            order.setStatus("RETURNED");
-        } else {
-            order.setStatus("SHIPPING");
+            order.setStatus(OrderStatus.SHIPPING);
         }
 
         orderRepository.save(order);
 
-        return mapOrderToDetailsDto(findOrderOrThrow(orderId));
+        return mapOrderToDetailsDto(order);
     }
 
     // =========================
     // TRẢ HÀNG - ĐƠN ĐÃ HOÀN THÀNH
     // =========================
     public GetPaidOrderWithDetailsDto findCompletedReturnableOrderByCode(String code) {
-        String normalizedCode = code == null ? "" : code.trim();
 
-        if (normalizedCode.isEmpty()) {
-            throw new RuntimeException("Vui lòng nhập mã hóa đơn");
+        if (code == null || code.trim().isEmpty()) {
+            throw new RuntimeException("Nhập mã hóa đơn");
         }
 
-        Order order = findOrderByInvoiceCode(normalizedCode);
-        String orderStatus = normalizeOrderStatus(order.getStatus());
+        Order order = findOrderByInvoiceCode(code.trim());
 
-        if ("RETURNED".equals(orderStatus)) {
-            throw new RuntimeException("Đơn hàng này đã trả toàn bộ");
+        if (order.getStatus() == OrderStatus.RETURNED) {
+            throw new RuntimeException("Đã trả toàn bộ");
         }
 
-        if (!List.of("PAID", "PARTIAL_RETURNED").contains(orderStatus)) {
-            throw new RuntimeException("Chỉ đơn hàng đã hoàn thành mới được trả hàng");
+        if (order.getStatus() != OrderStatus.PAID &&
+                order.getStatus() != OrderStatus.PARTIAL_RETURNED) {
+            throw new RuntimeException("Chỉ đơn đã hoàn thành mới được trả");
         }
 
         return mapOrderToDetailsDto(order);
@@ -1116,54 +1123,53 @@ public class PaymentService {
             Integer orderId,
             PostCompletedReturnRequest request
     ) {
+
         if (request == null || request.getItems() == null || request.getItems().isEmpty()) {
-            throw new RuntimeException("Vui lòng chọn sản phẩm cần trả");
+            throw new RuntimeException("Chọn sản phẩm cần trả");
         }
 
         Order order = findOrderOrThrow(orderId);
         Payment payment = paymentRepository.findTopByOrderIDOrderByIdDesc(order).orElse(null);
 
-        String orderStatus = normalizeOrderStatus(order.getStatus());
-        String paymentStatus = payment != null ? normalizePaymentStatus(payment.getStatus()) : "UNKNOWN";
-
-        if ("CANCELLED".equals(orderStatus) || "CANCELLED".equals(paymentStatus)) {
-            throw new RuntimeException("Không thể trả hàng cho đơn đã hủy");
+        if (order.getStatus() == OrderStatus.CANCELLED ||
+                (payment != null && payment.getStatus() == PaymentStatus.CANCELLED)) {
+            throw new RuntimeException("Không thể trả đơn đã hủy");
         }
 
-        if ("RETURNED".equals(orderStatus)) {
-            throw new RuntimeException("Đơn hàng này đã trả toàn bộ");
+        if (order.getStatus() == OrderStatus.RETURNED) {
+            throw new RuntimeException("Đã trả toàn bộ");
         }
 
-        if (!List.of("PAID", "PARTIAL_RETURNED").contains(orderStatus)) {
-            throw new RuntimeException("Chỉ đơn hàng đã hoàn thành mới được trả hàng");
+        if (order.getStatus() != OrderStatus.PAID &&
+                order.getStatus() != OrderStatus.PARTIAL_RETURNED) {
+            throw new RuntimeException("Chỉ đơn hoàn thành mới được trả");
         }
 
-        BigDecimal totalReturnAmount = BigDecimal.ZERO;
+        BigDecimal totalReturn = BigDecimal.ZERO;
 
-        for (PostCompletedReturnRequest.Item item : request.getItems()) {
-            totalReturnAmount = totalReturnAmount.add(
+        for (var item : request.getItems()) {
+            totalReturn = totalReturn.add(
                     processReturnSingleItem(
                             order,
                             item.getOrderDetailId(),
                             item.getQuantity(),
-                            item.getNote() != null && !item.getNote().trim().isEmpty()
-                                    ? item.getNote()
-                                    : request.getNote(),
+                            item.getNote(),
                             "COMPLETED_RETURN"
                     )
             );
         }
 
-        updateOrderAndPaymentAfterReturn(order, payment, totalReturnAmount);
+        updateOrderAndPaymentAfterReturn(order, payment, totalReturn);
 
         if (isAllOrderItemsReturned(order.getId())) {
-            order.setStatus("RETURNED");
+            order.setStatus(OrderStatus.RETURNED);
         } else {
-            order.setStatus("PARTIAL_RETURNED");
+            order.setStatus(OrderStatus.PARTIAL_RETURNED);
         }
 
         orderRepository.save(order);
-        return mapOrderToDetailsDto(findOrderOrThrow(orderId));
+
+        return mapOrderToDetailsDto(order);
     }
 
     private Order findOrderOrThrow(Integer orderId) {

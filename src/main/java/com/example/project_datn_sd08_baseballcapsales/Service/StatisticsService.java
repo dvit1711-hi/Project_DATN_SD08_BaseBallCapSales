@@ -1,6 +1,7 @@
 package com.example.project_datn_sd08_baseballcapsales.Service;
 
 import com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto.StatisticsDto;
+import com.example.project_datn_sd08_baseballcapsales.Model.enums.OrderStatus;
 import com.example.project_datn_sd08_baseballcapsales.Repository.AccountRepository;
 import com.example.project_datn_sd08_baseballcapsales.Repository.OrderDetailRepository;
 import com.example.project_datn_sd08_baseballcapsales.Repository.OrderRepository;
@@ -56,10 +57,10 @@ public class StatisticsService {
         Long totalShipment = totalOrders;
         Long totalDelivery = orders.stream()
                 .filter(o -> o.getStatus() != null && (
-                        o.getStatus().equalsIgnoreCase("DELIVERED") ||
-                                o.getStatus().equalsIgnoreCase("COMPLETED") ||
-                                o.getStatus().equalsIgnoreCase("HOAN THANH") ||
-                                o.getStatus().equalsIgnoreCase("ĐÃ GIAO")
+                        o.getStatus() == OrderStatus.DELIVERED ||
+                                o.getStatus() == OrderStatus.COMPLETED ||
+                                o.getStatus() == OrderStatus.HOAN_THANH ||
+                                o.getStatus() == OrderStatus.DA_GIAO
                 ))
                 .count();
 

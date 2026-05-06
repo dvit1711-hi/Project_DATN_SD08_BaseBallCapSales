@@ -1,5 +1,6 @@
 package com.example.project_datn_sd08_baseballcapsales.Model.entity;
 
+import com.example.project_datn_sd08_baseballcapsales.Model.enums.OrderStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -37,10 +38,9 @@ public class Order {
     @Column(name = "orderDate", updatable = false, nullable = false)
     private LocalDateTime orderDate;
 
-    @Size(max = 50)
-    @Nationalized
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 50)
-    private String status;
+    private OrderStatus status;
 
     @Size(max = 20)
     @Nationalized
