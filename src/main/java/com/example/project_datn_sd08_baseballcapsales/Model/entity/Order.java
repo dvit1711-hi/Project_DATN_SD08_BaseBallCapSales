@@ -1,6 +1,7 @@
 package com.example.project_datn_sd08_baseballcapsales.Model.entity;
 
 import com.example.project_datn_sd08_baseballcapsales.Model.enums.OrderStatus;
+import com.example.project_datn_sd08_baseballcapsales.Model.enums.OrderStatusConverter;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -38,7 +39,7 @@ public class Order {
     @Column(name = "orderDate", updatable = false, nullable = false)
     private LocalDateTime orderDate;
 
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = OrderStatusConverter.class)
     @Column(name = "status", length = 50)
     private OrderStatus status;
 
