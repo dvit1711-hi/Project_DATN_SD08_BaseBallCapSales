@@ -468,15 +468,23 @@ public class PaymentService {
             throw new RuntimeException("Đã thanh toán");
         }
 
-        payment.setStatus(PaymentStatus.PAID);
+        boolean isCod = "COD".equals(normalizePaymentMethod(payment.getMethod()));
 
-        if ("OFFLINE".equalsIgnoreCase(order.getOrderType())) {
+        // Xác nhận thanh toán cho tất cả
+        payment.setStatus(PaymentStatus.PAID);
+        paymentRepository.save(payment);
+
+        if (isCod && order.getStatus() == OrderStatus.SHIPPING) {
+            // COD đã giao xong, admin xác nhận thu tiền mặt
+            // Giữ nguyên SHIPPING — completeDeliveryByAdmin sẽ set PAID sau
+            // Không đổi orderStatus ở đây
+        } else if ("OFFLINE".equalsIgnoreCase(order.getOrderType())) {
             order.setStatus(OrderStatus.PAID);
         } else {
+            // BANK_TRANSFER / E_WALLET online → CONFIRMED để startShipping tiếp
             order.setStatus(OrderStatus.CONFIRMED);
         }
 
-        paymentRepository.save(payment);
         return orderRepository.save(order);
     }
 
@@ -650,23 +658,29 @@ public class PaymentService {
         Payment payment = paymentRepository.findTopByOrderIDOrderByIdDesc(order)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy thanh toán của đơn hàng"));
 
-        OrderStatus orderStatus = order.getStatus();
-        PaymentStatus paymentStatus = payment.getStatus();
-
-        if (orderStatus == OrderStatus.CANCELLED || paymentStatus == PaymentStatus.CANCELLED) {
-            throw new RuntimeException("Không thể xác nhận");
+        if (order.getStatus() == OrderStatus.CANCELLED ||
+                payment.getStatus() == PaymentStatus.CANCELLED) {
+            throw new RuntimeException("Không thể xác nhận đơn đã hủy");
         }
 
-        if (orderStatus == OrderStatus.PAID || paymentStatus == PaymentStatus.PAID) {
-            throw new RuntimeException("Đã thanh toán");
-        }
+        boolean isCod = "COD".equals(normalizePaymentMethod(payment.getMethod()));
 
-        payment.setStatus(PaymentStatus.PAID);
-
-        if (order.getOrderType().equalsIgnoreCase("OFFLINE")) {
-            order.setStatus(OrderStatus.PAID);
+        if (isCod) {
+            // COD: FE không gọi API ở bước "Xác nhận đơn"
+            // nên DB có thể vẫn là PENDING_PAYMENT — chấp nhận cả hai
+            if (order.getStatus() != OrderStatus.PENDING_PAYMENT &&
+                    order.getStatus() != OrderStatus.CONFIRMED) {
+                throw new RuntimeException("Chỉ bắt đầu giao được khi đơn chờ xử lý hoặc đã xác nhận");
+            }
+            // COD giữ UNPAID — tiền thu khi giao xong ở completeDelivery
         } else {
-            order.setStatus(OrderStatus.CONFIRMED);
+            // BANK_TRANSFER / E_WALLET: bắt buộc đã CONFIRMED và đã PAID
+            if (order.getStatus() != OrderStatus.CONFIRMED) {
+                throw new RuntimeException("Chỉ bắt đầu giao được khi đơn đã xác nhận thanh toán");
+            }
+            if (payment.getStatus() != PaymentStatus.PAID) {
+                throw new RuntimeException("Đơn chuyển khoản phải xác nhận thanh toán trước khi giao");
+            }
         }
 
         order.setStatus(OrderStatus.SHIPPING);
@@ -696,6 +710,8 @@ public class PaymentService {
 
         order.setStatus(OrderStatus.PAID);
 
+        // COD: thu tiền khi giao xong → set PAID ở đây
+        // BANK: đã PAID từ trước → giữ nguyên
         if (payment.getStatus() != PaymentStatus.PAID) {
             payment.setStatus(PaymentStatus.PAID);
             paymentRepository.save(payment);
@@ -772,9 +788,9 @@ public class PaymentService {
             throw new RuntimeException("Không thể hủy đơn đã thanh toán");
         }
 
-        if (order.getStatus() != OrderStatus.CONFIRMED &&
-                order.getStatus() != OrderStatus.SHIPPING) {
-            throw new RuntimeException("Phải ở CONFIRMED hoặc SHIPPING");
+        if (order.getStatus() == OrderStatus.CONFIRMED ||
+                order.getStatus() == OrderStatus.SHIPPING) {
+            throw new RuntimeException("Ở trạng thái CONFIRMED hoặc SHIPPING không hủy được đơn hàng");
         }
 
         List<OrderDetail> details =
@@ -911,6 +927,8 @@ public class PaymentService {
             case "BANKING", "BANK", "TRANSFER", "BANK_TRANSFER" -> "BANK_TRANSFER";
             case "EWALLET", "E-WALLET", "E_WALLET" -> "E_WALLET";
             case "MB", "MBBANK", "MB BANK", "MB-BANK", "MB_BANK" -> "BANK_TRANSFER";
+            case "VNPAY", "MOMO" -> "E_WALLET";
+// VNPAY, MOMO không có → rơi vào default → lỗi validate "phương thức không hợp lệ"
             default -> normalized;
         };
     }
