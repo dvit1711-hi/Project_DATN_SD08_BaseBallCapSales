@@ -464,24 +464,46 @@ public class PaymentService {
             throw new RuntimeException("Đơn đã hủy");
         }
 
+        boolean isCod = "COD".equals(normalizePaymentMethod(payment.getMethod()));
+
+        if (isCod) {
+            if (order.getStatus() == OrderStatus.PENDING_PAYMENT ||
+                    order.getStatus() == OrderStatus.CONFIRMED) {
+                // Bước "Xác nhận đơn" COD: chỉ confirm order
+                // KHÔNG set payment PAID — tiền chưa thu, thu khi giao xong
+                if (payment.getStatus() == PaymentStatus.PAID) {
+                    throw new RuntimeException("Đã thanh toán");
+                }
+                order.setStatus(OrderStatus.CONFIRMED);
+                // payment giữ nguyên UNPAID
+                return orderRepository.save(order);
+
+            } else if (order.getStatus() == OrderStatus.SHIPPING) {
+                // Bước "Xác nhận thanh toán" COD sau khi giao xong
+                if (payment.getStatus() == PaymentStatus.PAID) {
+                    throw new RuntimeException("Đã thanh toán");
+                }
+                payment.setStatus(PaymentStatus.PAID);
+                paymentRepository.save(payment);
+                // Giữ SHIPPING — completeDelivery sẽ set PAID sau
+                return orderRepository.save(order);
+
+            } else {
+                throw new RuntimeException("Không thể xác nhận ở trạng thái hiện tại");
+            }
+        }
+
+        // BANK_TRANSFER / E_WALLET
         if (payment.getStatus() == PaymentStatus.PAID) {
             throw new RuntimeException("Đã thanh toán");
         }
 
-        boolean isCod = "COD".equals(normalizePaymentMethod(payment.getMethod()));
-
-        // Xác nhận thanh toán cho tất cả
         payment.setStatus(PaymentStatus.PAID);
         paymentRepository.save(payment);
 
-        if (isCod && order.getStatus() == OrderStatus.SHIPPING) {
-            // COD đã giao xong, admin xác nhận thu tiền mặt
-            // Giữ nguyên SHIPPING — completeDeliveryByAdmin sẽ set PAID sau
-            // Không đổi orderStatus ở đây
-        } else if ("OFFLINE".equalsIgnoreCase(order.getOrderType())) {
+        if ("OFFLINE".equalsIgnoreCase(order.getOrderType())) {
             order.setStatus(OrderStatus.PAID);
         } else {
-            // BANK_TRANSFER / E_WALLET online → CONFIRMED để startShipping tiếp
             order.setStatus(OrderStatus.CONFIRMED);
         }
 
@@ -527,63 +549,78 @@ public class PaymentService {
                 ? payment.getStatus()
                 : PaymentStatus.UNKNOWN;
 
-        // ❌ không cho revert trạng thái ban đầu
+        // Không cho revert trạng thái ban đầu
         if (orderStatus == OrderStatus.PENDING_PAYMENT &&
                 (paymentStatus == PaymentStatus.UNPAID || paymentStatus == PaymentStatus.UNKNOWN)) {
             throw new RuntimeException("Đơn đang ở trạng thái ban đầu");
         }
 
         // =====================
-        // CASE: ĐÃ THANH TOÁN
+        // CASE: CONFIRMED (Chờ giao hàng) → quay về Chờ xác nhận
         // =====================
-        if (orderStatus == OrderStatus.PAID || paymentStatus == PaymentStatus.PAID) {
+        if (orderStatus == OrderStatus.CONFIRMED) {
+            boolean isCod = payment != null &&
+                    "COD".equals(normalizePaymentMethod(payment.getMethod()));
 
-            String method = payment != null
-                    ? normalizePaymentMethod(payment.getMethod())
-                    : "";
-
-            // COD
-            if ("COD".equals(method) &&
-                    (orderStatus == OrderStatus.SHIPPING || orderStatus == OrderStatus.PAID)) {
-
+            if (isCod) {
+                // COD: payment vẫn UNPAID, chỉ revert order status
+                order.setStatus(OrderStatus.PENDING_PAYMENT);
+            } else {
+                // BANK/EWALLET: đã set PAID khi confirm → revert về UNPAID
                 if (payment != null) {
                     payment.setStatus(PaymentStatus.UNPAID);
                     paymentRepository.save(payment);
                 }
+                order.setStatus(OrderStatus.PENDING_PAYMENT);
+            }
+            return orderRepository.save(order);
+        }
 
+        // =====================
+        // CASE: ĐÃ THANH TOÁN
+        // =====================
+        if (orderStatus == OrderStatus.PAID || paymentStatus == PaymentStatus.PAID) {
+            String method = payment != null
+                    ? normalizePaymentMethod(payment.getMethod())
+                    : "";
+
+            if ("COD".equals(method) &&
+                    (orderStatus == OrderStatus.SHIPPING || orderStatus == OrderStatus.PAID)) {
+                if (payment != null) {
+                    payment.setStatus(PaymentStatus.UNPAID);
+                    paymentRepository.save(payment);
+                }
                 order.setStatus(OrderStatus.SHIPPING);
                 return orderRepository.save(order);
             }
 
-            // NON COD
             if (!"COD".equals(method)) {
-
                 if (payment != null && paymentStatus != PaymentStatus.PAID) {
                     payment.setStatus(PaymentStatus.PAID);
                     paymentRepository.save(payment);
                 }
-
                 order.setStatus(OrderStatus.SHIPPING);
                 return orderRepository.save(order);
             }
 
-            // fallback
             if (payment != null) {
                 payment.setStatus(PaymentStatus.UNPAID);
                 paymentRepository.save(payment);
             }
-
             order.setStatus(OrderStatus.PENDING_PAYMENT);
             return orderRepository.save(order);
         }
 
-        // =====================
-        // CASE: SHIPPING
-        // =====================
+
+        // CASE: SHIPPING → quay về Chờ giao hàng (CONFIRMED)
         if (orderStatus == OrderStatus.SHIPPING) {
-            order.setStatus(OrderStatus.PENDING_PAYMENT);
+            // Quay về CONFIRMED thay vì PENDING_PAYMENT
+            // COD: payment vẫn UNPAID, BANK: payment vẫn PAID
+            // Cả hai đều về CONFIRMED = Chờ giao hàng
+            order.setStatus(OrderStatus.CONFIRMED);
             return orderRepository.save(order);
         }
+
 
         // =====================
         // CASE: CANCELLED
@@ -601,23 +638,14 @@ public class PaymentService {
                 int stock = pc.getStockQuantity() == null ? 0 : pc.getStockQuantity();
                 int qty = d.getQuantity() == null ? 0 : d.getQuantity();
 
-                if (stock < qty) {
-                    throw new RuntimeException("Không đủ tồn kho để khôi phục");
-                }
-
-                pc.setStockQuantity(stock - qty);
+                pc.setStockQuantity(stock + qty); // ← cộng lại tồn kho
                 productColorRepository.save(pc);
             }
 
             DiscountCoupon coupon = order.getCouponID();
             if (coupon != null) {
                 int current = coupon.getQuantity() == null ? 0 : coupon.getQuantity();
-
-                if (current <= 0) {
-                    throw new RuntimeException("Không đủ lượt coupon");
-                }
-
-                coupon.setQuantity(current - 1);
+                coupon.setQuantity(current + 1);
                 discountCouponRepository.save(coupon);
             }
 
@@ -656,7 +684,7 @@ public class PaymentService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng"));
 
         Payment payment = paymentRepository.findTopByOrderIDOrderByIdDesc(order)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy thanh toán của đơn hàng"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy thanh toán"));
 
         if (order.getStatus() == OrderStatus.CANCELLED ||
                 payment.getStatus() == PaymentStatus.CANCELLED) {
@@ -666,27 +694,25 @@ public class PaymentService {
         boolean isCod = "COD".equals(normalizePaymentMethod(payment.getMethod()));
 
         if (isCod) {
-            // COD: FE không gọi API ở bước "Xác nhận đơn"
-            // nên DB có thể vẫn là PENDING_PAYMENT — chấp nhận cả hai
+            // COD: không cần qua CONFIRMED, đi thẳng từ PENDING_PAYMENT → SHIPPING
             if (order.getStatus() != OrderStatus.PENDING_PAYMENT &&
                     order.getStatus() != OrderStatus.CONFIRMED) {
-                throw new RuntimeException("Chỉ bắt đầu giao được khi đơn chờ xử lý hoặc đã xác nhận");
+                throw new RuntimeException("Không thể bắt đầu giao ở trạng thái hiện tại");
             }
-            // COD giữ UNPAID — tiền thu khi giao xong ở completeDelivery
+            // Giữ UNPAID — thu tiền khi giao xong
         } else {
-            // BANK_TRANSFER / E_WALLET: bắt buộc đã CONFIRMED và đã PAID
+            // BANK/EWALLET: phải qua confirmPayment trước (CONFIRMED + PAID)
             if (order.getStatus() != OrderStatus.CONFIRMED) {
-                throw new RuntimeException("Chỉ bắt đầu giao được khi đơn đã xác nhận thanh toán");
+                throw new RuntimeException("Đơn chuyển khoản phải xác nhận thanh toán trước");
             }
             if (payment.getStatus() != PaymentStatus.PAID) {
-                throw new RuntimeException("Đơn chuyển khoản phải xác nhận thanh toán trước khi giao");
+                throw new RuntimeException("Chưa xác nhận thanh toán");
             }
         }
 
         order.setStatus(OrderStatus.SHIPPING);
         return orderRepository.save(order);
     }
-
     @Transactional
     public Order completeDeliveryByAdmin(Integer orderId) {
         Order order = orderRepository.findById(orderId)
