@@ -45,6 +45,7 @@ public interface ProductColorRepository extends JpaRepository<ProductColor, Inte
                 or lower(p.productName) like lower(concat('%', :keyword, '%'))
                 or lower(c.colorName) like lower(concat('%', :keyword, '%'))
                 or lower(s.sizeName) like lower(concat('%', :keyword, '%'))
+                or lower(pc.productColorCode) like lower(concat('%', :keyword, '%'))
           )
         order by p.productName asc, c.colorName asc, s.sizeName asc
     """)
