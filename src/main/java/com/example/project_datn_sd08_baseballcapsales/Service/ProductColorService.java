@@ -66,6 +66,7 @@ public class ProductColorService {
             colorDto.setIsRepresentative(Boolean.TRUE.equals(pc.getIsRepresentative()));
             colorDto.setSizeID(pc.getSizeID() != null ? pc.getSizeID().getSizeID() : null);
             colorDto.setSizeName(pc.getSizeID() != null ? pc.getSizeID().getSizeName() : null);
+            colorDto.setProductColorCode(pc.getProductColorCode());
 
             List<ImageDto> imageDtos = imageRepository.findByProductColorID_Id(pc.getId())
                     .stream()
@@ -160,6 +161,7 @@ public class ProductColorService {
         pc.setStockQuantity(dto.getStockQuantity() != null ? dto.getStockQuantity() : 0);
         pc.setStatus(dto.getStatus() == null || dto.getStatus().isBlank() ? "ACTIVE" : dto.getStatus().trim());
         pc.setIsRepresentative(Boolean.TRUE.equals(dto.getIsRepresentative()));
+        pc.setProductColorCode("SP" + pc.getId());
 
         ProductColor saved = productColorRepository.save(pc);
 

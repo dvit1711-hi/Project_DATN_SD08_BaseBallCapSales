@@ -20,4 +20,5 @@ public class ColorDetailDto {
     private String status;
     private Boolean isRepresentative;
     private List<ImageDto> images;
+    private String productColorCode;
 }

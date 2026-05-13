@@ -57,4 +57,7 @@ public class ProductColor {
 
     @OneToMany(mappedBy = "productColorID")
     private List<Image> images;
+
+    @Column(name = "productColorCode", unique = true, length = 20)
+    private String productColorCode;
 }

@@ -21,4 +21,5 @@ public class ProductDetailDto {
     private Integer materialID;
     private String materialName;
     private List<ColorDetailDto> colors;
+    private String productColorCode;
 }
