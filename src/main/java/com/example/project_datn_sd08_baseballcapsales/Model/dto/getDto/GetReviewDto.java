@@ -18,6 +18,7 @@ public class GetReviewDto {
     private String productName;
     private Integer accountId;
     private String username;
+    private Integer orderId;
     private Integer rating;
     private String comment;
     private Instant createdAt;
@@ -28,6 +29,9 @@ public class GetReviewDto {
         this.productName = review.getProductID().getProductName();
         this.accountId = review.getAccountID().getId();
         this.username = review.getAccountID().getUsername();
+        if (review.getOrderID() != null) {
+            this.orderId = review.getOrderID().getId();
+        }
         this.rating = review.getRating();
         this.comment = review.getComment();
         this.createdAt = review.getCreatedAt();

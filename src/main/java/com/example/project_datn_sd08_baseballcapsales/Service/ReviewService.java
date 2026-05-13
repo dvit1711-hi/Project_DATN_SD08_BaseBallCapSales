@@ -68,28 +68,45 @@ public class ReviewService {
         Account account = accountRepository.findById(dto.getAccountId())
                 .orElseThrow(() -> new RuntimeException("Tài khoản không tìm thấy"));
 
-        boolean productPurchased = verifyProductPurchasedInPaidOrder(dto.getAccountId(), dto.getProductId());
-        if (!productPurchased) {
-            throw new RuntimeException("Bạn chỉ có thể đánh giá sản phẩm từ các đơn hàng đã thanh toán");
+        Order order = orderRepository.findById(dto.getOrderId())
+                .orElseThrow(() -> new RuntimeException("Đơn hàng không tìm thấy"));
+
+        // ✅ Kiểm tra đơn hàng này có thuộc account không
+        if (!order.getAccountID().getId().equals(dto.getAccountId())) {
+            throw new RuntimeException("Đơn hàng không thuộc tài khoản này");
         }
 
-        boolean alreadyReviewed = reviewRepository.existsByAccountID_IdAndProductID_Id(
-                dto.getAccountId(),
-                dto.getProductId()
-        );
+        // ✅ Kiểm tra sản phẩm có trong đơn hàng cụ thể này không
+        boolean productInOrder = orderDetailRepository
+                .existsByOrderIdAndProductId(dto.getOrderId(), dto.getProductId());
+        if (!productInOrder) {
+            throw new RuntimeException("Sản phẩm không có trong đơn hàng này");
+        }
+
+        // ✅ Kiểm tra đơn hàng đã thanh toán chưa
+        boolean isPaid = paymentRepository.existsByOrderIDAndStatus(order, PaymentStatus.PAID);
+        if (!isPaid) {
+            throw new RuntimeException("Chỉ được đánh giá đơn hàng đã thanh toán");
+        }
+
+        // ✅ Check trùng theo order + product + account (không phải chỉ account + product)
+        boolean alreadyReviewed = reviewRepository
+                .existsByAccountID_IdAndProductID_IdAndOrderID_Id(
+                        dto.getAccountId(), dto.getProductId(), dto.getOrderId()
+                );
         if (alreadyReviewed) {
-            throw new RuntimeException("Bạn đã đánh giá sản phẩm này rồi, mỗi tài khoản chỉ được đánh giá 1 lần");
+            throw new RuntimeException("Bạn đã đánh giá sản phẩm này trong đơn hàng này rồi");
         }
 
         Review review = new Review();
         review.setProductID(product);
         review.setAccountID(account);
+        review.setOrderID(order);     // ✅ THÊM
         review.setRating(dto.getRating());
         review.setComment(dto.getComment());
         review.setCreatedAt(Instant.now());
 
-        Review savedReview = reviewRepository.save(review);
-        return new GetReviewDto(savedReview);
+        return new GetReviewDto(reviewRepository.save(review));
     }
 
     public GetReviewDto updateReview(Integer id, PutReviewDto dto) {

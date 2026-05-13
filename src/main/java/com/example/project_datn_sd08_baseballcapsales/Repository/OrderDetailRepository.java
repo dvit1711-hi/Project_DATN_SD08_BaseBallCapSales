@@ -42,4 +42,14 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, Intege
             @Param("accountId") Integer accountId,
             @Param("productId") Integer productId
     );
+
+    @Query("""
+    SELECT COUNT(od) > 0 FROM OrderDetail od
+    WHERE od.orderID.id = :orderId
+    AND od.productColorID.productID.id = :productId
+""")
+    boolean existsByOrderIdAndProductId(
+            @Param("orderId") Integer orderId,
+            @Param("productId") Integer productId
+    );
 }
