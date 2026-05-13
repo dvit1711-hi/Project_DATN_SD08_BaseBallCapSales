@@ -2,6 +2,8 @@ package com.example.project_datn_sd08_baseballcapsales.Repository;
 
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Order;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Payment;
+import com.example.project_datn_sd08_baseballcapsales.Model.enums.PaymentStatus;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -24,4 +26,6 @@ public interface PaymentRepository extends JpaRepository<Payment, Integer> {
     BigDecimal totalSuccessfulPayment();
 
     Payment findByOrderID(Order order);
+
+    boolean existsByOrderIDAndStatus(Order order, PaymentStatus status);
 }

@@ -567,6 +567,13 @@ public class PosServiceImpl implements PosService {
         dto.setProductName(pc.getProductID().getProductName());
         dto.setColorName(pc.getColorID() != null ? pc.getColorID().getColorName() : null);
         dto.setSizeName(pc.getSizeID() != null ? pc.getSizeID().getSizeName() : null);
+        
+        // Nếu productColorCode NULL, generate từ ID
+        String productColorCode = pc.getProductColorCode();
+        if (productColorCode == null || productColorCode.isBlank()) {
+            productColorCode = "PC" + String.format("%06d", pc.getId());
+        }
+        dto.setProductColorCode(productColorCode);
 
         dto.setOriginalPrice(priceData.getOriginalPrice());
         dto.setFinalPrice(priceData.getFinalPrice());

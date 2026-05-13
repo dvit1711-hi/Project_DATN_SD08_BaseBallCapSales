@@ -17,7 +17,9 @@ public interface ReviewRepository extends JpaRepository<Review, Integer> {
     @Query("select r.rating, count(r) from Review r group by r.rating order by r.rating desc")
     List<Object[]> distributionByStar();
 
-    boolean existsByAccountID_IdAndProductID_Id(Integer accountId, Integer productId);
+    boolean existsByAccountID_IdAndProductID_IdAndOrderID_Id(
+            Integer accountId, Integer productId, Integer orderId
+    );
 
     List<Review> findByProductID_Id(Integer productId);
 

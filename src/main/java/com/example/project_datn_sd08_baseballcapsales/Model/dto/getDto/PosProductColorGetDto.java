@@ -12,6 +12,7 @@ public class PosProductColorGetDto {
     private String productName;
     private String colorName;
     private String sizeName;
+    private String productColorCode;
 
     // Giữ để tương thích frontend cũ: price = finalPrice
     private BigDecimal price;

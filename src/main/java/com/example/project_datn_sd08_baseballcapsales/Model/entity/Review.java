@@ -46,5 +46,9 @@ public class Review {
     @Column(name = "createdAt")
     private Instant createdAt;
 
+    @ManyToOne
+    @JoinColumn(name = "orderId")
+    private Order orderID;
+
 
 }
