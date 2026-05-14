@@ -27,6 +27,7 @@ public class GetPaidOrderWithDetailsDto {
 
     private Integer orderId;
     private String trackingCode;
+    private String shipPickupCode;
     private String orderType;
 
     private Integer accountId;
@@ -57,6 +58,7 @@ public class GetPaidOrderWithDetailsDto {
     ) {
         this.orderId = order.getId();
         this.trackingCode = order.getTrackingCode();
+        this.shipPickupCode = order.getShipPickupCode();
         this.orderType = order.getOrderType();
 
         if (order.getAccountID() != null) {

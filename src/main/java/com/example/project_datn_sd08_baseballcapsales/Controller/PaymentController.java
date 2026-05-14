@@ -205,6 +205,7 @@ public class PaymentController {
         response.put("orderType", order.getOrderType());
         response.put("totalAmount", order.getTotalAmount());
         response.put("trackingCode", order.getTrackingCode());
+        response.put("shipPickupCode", order.getShipPickupCode());
         response.put("customerName", order.getCustomerName());
         response.put("customerPhone", order.getCustomerPhone());
         return response;

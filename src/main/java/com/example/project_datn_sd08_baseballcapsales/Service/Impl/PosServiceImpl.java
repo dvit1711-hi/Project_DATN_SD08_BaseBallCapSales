@@ -645,6 +645,7 @@ public class PosServiceImpl implements PosService {
         dto.setDiscountAmount(discount);
         dto.setTotalAmount(order.getTotalAmount());
         dto.setTrackingCode(order.getTrackingCode());
+        dto.setShipPickupCode(order.getShipPickupCode());
 
         dto.setPaymentMethod(latestPayment != null ? normalizePosPaymentMethod(latestPayment.getMethod()) : null);
         dto.setPaymentStatus(

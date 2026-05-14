@@ -79,6 +79,9 @@ public class Order {
     @Column(name = "trackingCode", length = 30, unique = true)
     private String trackingCode;
 
+    @Column(name = "shipPickupCode", length = 40, unique = true)
+    private String shipPickupCode;
+
     // ================== AUTO GENERATE ===================
     @PrePersist
     public void prePersist() {
@@ -94,6 +97,10 @@ public class Order {
         // Sinh mã vận đơn nếu chưa có
         if (this.trackingCode == null || this.trackingCode.isEmpty()) {
             this.trackingCode = generateTrackingCode();
+        }
+
+        if (this.shipPickupCode == null || this.shipPickupCode.isEmpty()) {
+            this.shipPickupCode = generateShipPickupCode();
         }
     }
 
@@ -112,5 +119,12 @@ public class Order {
         }
 
         return "DTVD" + date + letters;
+    }
+
+    private String generateShipPickupCode() {
+        String baseTracking = (this.trackingCode == null || this.trackingCode.isBlank())
+                ? generateTrackingCode()
+                : this.trackingCode;
+        return "SHIP-" + baseTracking;
     }
 }
