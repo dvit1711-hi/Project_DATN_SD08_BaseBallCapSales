@@ -161,7 +161,6 @@ public class ProductColorService {
         pc.setStockQuantity(dto.getStockQuantity() != null ? dto.getStockQuantity() : 0);
         pc.setStatus(dto.getStatus() == null || dto.getStatus().isBlank() ? "ACTIVE" : dto.getStatus().trim());
         pc.setIsRepresentative(Boolean.TRUE.equals(dto.getIsRepresentative()));
-        pc.setProductColorCode("SP" + pc.getId());
 
         ProductColor saved = productColorRepository.save(pc);
 
@@ -178,6 +177,7 @@ public class ProductColorService {
             }
         }
 
+        pc.setProductColorCode("SP" + saved.getId());
         return saved;
     }
 
