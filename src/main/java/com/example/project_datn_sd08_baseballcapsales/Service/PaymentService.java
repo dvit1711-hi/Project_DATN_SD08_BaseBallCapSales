@@ -549,82 +549,54 @@ public class PaymentService {
                 ? payment.getStatus()
                 : PaymentStatus.UNKNOWN;
 
-        // Không cho revert trạng thái ban đầu
         if (orderStatus == OrderStatus.PENDING_PAYMENT &&
                 (paymentStatus == PaymentStatus.UNPAID || paymentStatus == PaymentStatus.UNKNOWN)) {
             throw new RuntimeException("Đơn đang ở trạng thái ban đầu");
         }
 
-        // =====================
-        // CASE: CONFIRMED (Chờ giao hàng) → quay về Chờ xác nhận
-        // =====================
+        // CASE 1: CONFIRMED → quay về PENDING_PAYMENT
         if (orderStatus == OrderStatus.CONFIRMED) {
             boolean isCod = payment != null &&
                     "COD".equals(normalizePaymentMethod(payment.getMethod()));
-
-            if (isCod) {
-                // COD: payment vẫn UNPAID, chỉ revert order status
-                order.setStatus(OrderStatus.PENDING_PAYMENT);
-            } else {
-                // BANK/EWALLET: đã set PAID khi confirm → revert về UNPAID
+            if (!isCod) {
                 if (payment != null) {
                     payment.setStatus(PaymentStatus.UNPAID);
                     paymentRepository.save(payment);
                 }
-                order.setStatus(OrderStatus.PENDING_PAYMENT);
-            }
-            return orderRepository.save(order);
-        }
-
-        // =====================
-        // CASE: ĐÃ THANH TOÁN
-        // =====================
-        if (orderStatus == OrderStatus.PAID || paymentStatus == PaymentStatus.PAID) {
-            String method = payment != null
-                    ? normalizePaymentMethod(payment.getMethod())
-                    : "";
-
-            if ("COD".equals(method) &&
-                    (orderStatus == OrderStatus.SHIPPING || orderStatus == OrderStatus.PAID)) {
-                if (payment != null) {
-                    payment.setStatus(PaymentStatus.UNPAID);
-                    paymentRepository.save(payment);
-                }
-                order.setStatus(OrderStatus.SHIPPING);
-                return orderRepository.save(order);
-            }
-
-            if (!"COD".equals(method)) {
-                if (payment != null && paymentStatus != PaymentStatus.PAID) {
-                    payment.setStatus(PaymentStatus.PAID);
-                    paymentRepository.save(payment);
-                }
-                order.setStatus(OrderStatus.SHIPPING);
-                return orderRepository.save(order);
-            }
-
-            if (payment != null) {
-                payment.setStatus(PaymentStatus.UNPAID);
-                paymentRepository.save(payment);
             }
             order.setStatus(OrderStatus.PENDING_PAYMENT);
             return orderRepository.save(order);
         }
 
-
-        // CASE: SHIPPING → quay về Chờ giao hàng (CONFIRMED)
+        // ✅ CASE 2: SHIPPING → quay về CONFIRMED (chờ giao hàng)
+        // Phải đặt TRƯỚC case PAID để BANK_TRANSFER (SHIPPING+PAID) không bị nhảy sai
         if (orderStatus == OrderStatus.SHIPPING) {
-            // Quay về CONFIRMED thay vì PENDING_PAYMENT
-            // COD: payment vẫn UNPAID, BANK: payment vẫn PAID
-            // Cả hai đều về CONFIRMED = Chờ giao hàng
+            // Giữ nguyên paymentStatus (COD vẫn UNPAID, BANK vẫn PAID)
             order.setStatus(OrderStatus.CONFIRMED);
             return orderRepository.save(order);
         }
 
+        // CASE 3: ĐÃ HOÀN THÀNH (PAID)
+        if (orderStatus == OrderStatus.PAID || paymentStatus == PaymentStatus.PAID) {
+            String method = payment != null
+                    ? normalizePaymentMethod(payment.getMethod())
+                    : "";
 
-        // =====================
-        // CASE: CANCELLED
-        // =====================
+            if ("COD".equals(method)) {
+                if (payment != null) {
+                    payment.setStatus(PaymentStatus.UNPAID);
+                    paymentRepository.save(payment);
+                }
+                order.setStatus(OrderStatus.SHIPPING);
+                return orderRepository.save(order);
+            }
+
+            // BANK/EWALLET: revert từ PAID → SHIPPING (giữ PAID, cho revert tiếp)
+            order.setStatus(OrderStatus.SHIPPING);
+            return orderRepository.save(order);
+        }
+
+        // CASE 4: CANCELLED
         if (orderStatus == OrderStatus.CANCELLED ||
                 paymentStatus == PaymentStatus.CANCELLED) {
 
@@ -634,11 +606,9 @@ public class PaymentService {
             for (OrderDetail d : details) {
                 ProductColor pc = d.getProductColorID();
                 if (pc == null) continue;
-
                 int stock = pc.getStockQuantity() == null ? 0 : pc.getStockQuantity();
                 int qty = d.getQuantity() == null ? 0 : d.getQuantity();
-
-                pc.setStockQuantity(stock + qty); // ← cộng lại tồn kho
+                pc.setStockQuantity(stock + qty);
                 productColorRepository.save(pc);
             }
 
