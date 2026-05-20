@@ -82,6 +82,9 @@ public class Order {
     @Column(name = "shipPickupCode", length = 40, unique = true)
     private String shipPickupCode;
 
+    @Column(name = "stockDeducted")
+    private Boolean stockDeducted = false;
+
     // ================== AUTO GENERATE ===================
     @PrePersist
     public void prePersist() {
