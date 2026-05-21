@@ -205,9 +205,6 @@ public class PaymentService {
                 throw new RuntimeException(productName + " không đủ tồn kho");
             }
 
-            productColor.setStockQuantity(currentStock - quantity);
-            productColorRepository.save(productColor);
-
             BigDecimal price = productDiscountService.getDiscountedPrice(productColor);
             subTotal = subTotal.add(
                     price.multiply(BigDecimal.valueOf(item.getQuantity()))
@@ -235,6 +232,8 @@ public class PaymentService {
         BigDecimal safeShippingFee = shippingFee == null ? BigDecimal.ZERO : shippingFee.max(BigDecimal.ZERO);
         BigDecimal total = subTotal.subtract(discountAmount).max(BigDecimal.ZERO).add(safeShippingFee);
         order.setTotalAmount(total);
+        // Mark that stock has not yet been deducted; deduction will happen when admin confirms payment
+        order.setStockDeducted(false);
         orderRepository.save(order);
 
         String normalizedMethod = normalizePaymentMethod(method);
@@ -476,6 +475,8 @@ public class PaymentService {
                 }
                 order.setStatus(OrderStatus.CONFIRMED);
                 // payment giữ nguyên UNPAID
+                // Deduct stock now that admin confirmed the COD order
+                deductStockForOrder(order);
                 return orderRepository.save(order);
 
             } else if (order.getStatus() == OrderStatus.SHIPPING) {
@@ -506,6 +507,9 @@ public class PaymentService {
         } else {
             order.setStatus(OrderStatus.CONFIRMED);
         }
+
+        // Deduct stock now that payment is confirmed
+        deductStockForOrder(order);
 
         return orderRepository.save(order);
     }
@@ -600,16 +604,21 @@ public class PaymentService {
         if (orderStatus == OrderStatus.CANCELLED ||
                 paymentStatus == PaymentStatus.CANCELLED) {
 
-            List<OrderDetail> details =
-                    orderDetailRepository.findByOrderID_Id(order.getId());
+            // Only restore stock if it was previously deducted for this order
+            if (Boolean.TRUE.equals(order.getStockDeducted())) {
+                List<OrderDetail> details =
+                        orderDetailRepository.findByOrderID_Id(order.getId());
 
-            for (OrderDetail d : details) {
-                ProductColor pc = d.getProductColorID();
-                if (pc == null) continue;
-                int stock = pc.getStockQuantity() == null ? 0 : pc.getStockQuantity();
-                int qty = d.getQuantity() == null ? 0 : d.getQuantity();
-                pc.setStockQuantity(stock + qty);
-                productColorRepository.save(pc);
+                for (OrderDetail d : details) {
+                    ProductColor pc = d.getProductColorID();
+                    if (pc == null) continue;
+                    int stock = pc.getStockQuantity() == null ? 0 : pc.getStockQuantity();
+                    int qty = d.getQuantity() == null ? 0 : d.getQuantity();
+                    pc.setStockQuantity(stock + qty);
+                    productColorRepository.save(pc);
+                }
+
+                order.setStockDeducted(false);
             }
 
             DiscountCoupon coupon = order.getCouponID();
@@ -789,22 +798,27 @@ public class PaymentService {
             throw new RuntimeException("Ở trạng thái CONFIRMED hoặc SHIPPING không hủy được đơn hàng");
         }
 
-        List<OrderDetail> details =
-                orderDetailRepository.findByOrderID_Id(order.getId());
+        // Only restore stock if it was previously deducted for this order
+        if (Boolean.TRUE.equals(order.getStockDeducted())) {
+            List<OrderDetail> details =
+                    orderDetailRepository.findByOrderID_Id(order.getId());
 
-        for (OrderDetail detail : details) {
-            ProductColor productColor = detail.getProductColorID();
-            if (productColor == null) continue;
+            for (OrderDetail detail : details) {
+                ProductColor productColor = detail.getProductColorID();
+                if (productColor == null) continue;
 
-            int stock = productColor.getStockQuantity() == null ? 0 : productColor.getStockQuantity();
-            int qty = detail.getQuantity() == null ? 0 : detail.getQuantity();
+                int stock = productColor.getStockQuantity() == null ? 0 : productColor.getStockQuantity();
+                int qty = detail.getQuantity() == null ? 0 : detail.getQuantity();
 
-            productColor.setStockQuantity(stock + Math.max(qty, 0));
-            productColorRepository.save(productColor);
+                productColor.setStockQuantity(stock + Math.max(qty, 0));
+                productColorRepository.save(productColor);
 
-            if (restoreToCart && qty > 0 && order.getAccountID() != null) {
-                restoreItemToCart(order.getAccountID(), productColor, qty);
+                if (restoreToCart && qty > 0 && order.getAccountID() != null) {
+                    restoreItemToCart(order.getAccountID(), productColor, qty);
+                }
             }
+
+            order.setStockDeducted(false);
         }
 
         DiscountCoupon coupon = order.getCouponID();
@@ -851,6 +865,29 @@ public class PaymentService {
         }
 
         cartItemRepository.save(cartItem);
+    }
+
+    private void deductStockForOrder(Order order) {
+        if (order == null) return;
+        if (Boolean.TRUE.equals(order.getStockDeducted())) return;
+
+        List<OrderDetail> details = orderDetailRepository.findByOrderID_Id(order.getId());
+        for (OrderDetail d : details) {
+            ProductColor pc = d.getProductColorID();
+            if (pc == null) continue;
+            int stock = pc.getStockQuantity() == null ? 0 : pc.getStockQuantity();
+            int qty = d.getQuantity() == null ? 0 : d.getQuantity();
+            if (qty <= 0) continue;
+            if (stock < qty) {
+                String productName = pc.getProductID() != null ? pc.getProductID().getProductName() : "Sản phẩm";
+                throw new RuntimeException(productName + " không đủ tồn kho khi xác nhận đơn");
+            }
+            pc.setStockQuantity(stock - qty);
+            productColorRepository.save(pc);
+        }
+
+        order.setStockDeducted(true);
+        orderRepository.save(order);
     }
 
     private DiscountCoupon validateCoupon(String couponCode, BigDecimal orderAmount) {
