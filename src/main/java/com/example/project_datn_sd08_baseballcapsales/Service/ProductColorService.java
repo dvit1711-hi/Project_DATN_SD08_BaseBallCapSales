@@ -111,6 +111,69 @@ public class ProductColorService {
                 .orElseThrow(() -> new IllegalArgumentException("Product color not found"));
     }
 
+
+    /**
+     * Tạo nhiều biến thể cùng lúc cho một sản phẩm.
+     * Bỏ qua (không ném lỗi) nếu combo product+color+size đã tồn tại.
+     */
+    @Transactional
+    public List<ProductColor> createBatch(Integer productId, List<PostProductColorDto> dtos) {
+        if (dtos == null || dtos.isEmpty()) {
+            throw new IllegalArgumentException("Danh sách biến thể không được rỗng");
+        }
+
+        List<ProductColor> created = new ArrayList<>();
+        boolean firstRepresentativeSet = false;
+
+        for (int i = 0; i < dtos.size(); i++) {
+            PostProductColorDto dto = dtos.get(i);
+
+            // Validate cơ bản
+            if (dto.getColorID() == null) throw new IllegalArgumentException("colorID không được để trống (index " + i + ")");
+            if (dto.getSizeID()  == null) throw new IllegalArgumentException("sizeID không được để trống (index " + i + ")");
+            if (dto.getPrice()   == null || dto.getPrice().compareTo(BigDecimal.ZERO) < 0)
+                throw new IllegalArgumentException("price phải >= 0 (index " + i + ")");
+
+            // Bỏ qua nếu đã tồn tại
+            boolean existed = productColorRepository.existsByProductID_IdAndColorID_IdAndSizeID_SizeID(
+                    productId, dto.getColorID(), dto.getSizeID());
+            if (existed) continue;
+
+            Product product = productRepository.findById(productId)
+                    .orElseThrow(() -> new RuntimeException("Product not found: " + productId));
+            Color color = colorRepository.findById(dto.getColorID())
+                    .orElseThrow(() -> new RuntimeException("Color not found: " + dto.getColorID()));
+            SizeEntity size = sizeRepository.findById(dto.getSizeID())
+                    .orElseThrow(() -> new RuntimeException("Size not found: " + dto.getSizeID()));
+
+            ProductColor pc = new ProductColor();
+            pc.setProductID(product);
+            pc.setColorID(color);
+            pc.setSizeID(size);
+            pc.setPrice(dto.getPrice());
+            pc.setStockQuantity(dto.getStockQuantity() != null ? dto.getStockQuantity() : 0);
+            pc.setStatus(dto.getStatus() == null || dto.getStatus().isBlank() ? "ACTIVE" : dto.getStatus().trim());
+
+            // Biến thể đầu tiên trong batch làm đại diện (nếu chưa có)
+            boolean shouldBeRepresentative = !firstRepresentativeSet &&
+                    !productColorRepository.findFirstByProductID_IdAndIsRepresentativeTrueAndStatus(productId, "ACTIVE").isPresent();
+            pc.setIsRepresentative(shouldBeRepresentative || Boolean.TRUE.equals(dto.getIsRepresentative()));
+
+            ProductColor saved = productColorRepository.save(pc);
+            saved.setProductColorCode("SP" + saved.getId());
+            productColorRepository.save(saved);
+
+            if (pc.getIsRepresentative()) {
+                productColorRepository.clearRepresentativeOfProduct(productId, saved.getId());
+                firstRepresentativeSet = true;
+            }
+
+            created.add(saved);
+        }
+
+        return created;
+    }
+
     @Transactional
     public ProductColor createProductColor(Integer productId, PostProductColorDto dto) {
         if (productId == null) {
