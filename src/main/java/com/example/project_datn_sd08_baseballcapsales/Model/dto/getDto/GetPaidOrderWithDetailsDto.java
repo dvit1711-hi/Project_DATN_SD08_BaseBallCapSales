@@ -1,5 +1,6 @@
 package com.example.project_datn_sd08_baseballcapsales.Model.dto.getDto;
 
+import com.example.project_datn_sd08_baseballcapsales.Model.entity.DiscountCoupon;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.Order;
 import com.example.project_datn_sd08_baseballcapsales.Model.entity.OrderDetail;
 import com.example.project_datn_sd08_baseballcapsales.Model.enums.OrderStatus;
@@ -10,6 +11,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -45,6 +47,8 @@ public class GetPaidOrderWithDetailsDto {
     private String note;
     private String couponCode;
     private BigDecimal totalAmount;
+    private BigDecimal shippingFee;
+    private BigDecimal discountAmount;
     private PaymentStatus paymentStatus;
     private String paymentMethod;
 
@@ -87,12 +91,16 @@ public class GetPaidOrderWithDetailsDto {
         this.orderStatus = order.getStatus();
         this.shippingAddress = order.getShippingAddress();
         this.note = order.getNote();
-        this.couponCode = order.getCouponID() != null
-                ? order.getCouponID().getCouponCode()
-                : null;
+
+        DiscountCoupon coupon = order.getCouponID();
+        this.couponCode = coupon != null ? coupon.getCouponCode() : null;
+
         this.totalAmount = order.getTotalAmount();
         this.paymentStatus = paymentStatus;
         this.paymentMethod = paymentMethod;
+
+        // ✅ Tính lại subTotal từ các order detail
+        BigDecimal subTotal = BigDecimal.ZERO;
         this.items = new ArrayList<>();
 
         if (orderDetails != null) {
@@ -101,8 +109,59 @@ public class GetPaidOrderWithDetailsDto {
                     continue;
                 }
                 this.items.add(new OrderItemDetailsDto(detail));
+
+                BigDecimal price = detail.getPrice() == null ? BigDecimal.ZERO : detail.getPrice();
+                int qty = detail.getQuantity() == null ? 0 : detail.getQuantity();
+                subTotal = subTotal.add(price.multiply(BigDecimal.valueOf(qty)));
             }
         }
+
+        // ✅ Tính discountAmount từ coupon + subTotal
+        this.discountAmount = calculateDiscountAmount(coupon, subTotal);
+
+        // ✅ shippingFee = totalAmount - (subTotal - discountAmount)
+        // shippingFee = totalAmount - subTotal + discountAmount
+        BigDecimal afterDiscount = subTotal.subtract(this.discountAmount).max(BigDecimal.ZERO);
+        BigDecimal total = order.getTotalAmount() == null ? BigDecimal.ZERO : order.getTotalAmount();
+        this.shippingFee = total.subtract(afterDiscount).max(BigDecimal.ZERO);
+    }
+
+    /**
+     * Tính số tiền giảm từ coupon, giống logic trong PaymentService.
+     * Trả về ZERO nếu không có coupon hoặc coupon không hợp lệ.
+     */
+    private static BigDecimal calculateDiscountAmount(DiscountCoupon coupon, BigDecimal subTotal) {
+        if (coupon == null) return BigDecimal.ZERO;
+        if (coupon.getDiscountValue() == null
+                || coupon.getDiscountValue().compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO;
+        }
+        if (subTotal == null || subTotal.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO;
+        }
+
+        String type = coupon.getDiscountType() == null
+                ? ""
+                : coupon.getDiscountType().trim().toLowerCase();
+
+        BigDecimal discount;
+
+        if ("percent".equals(type)) {
+            discount = subTotal
+                    .multiply(coupon.getDiscountValue())
+                    .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+
+            if (coupon.getMaxDiscountValue() != null
+                    && coupon.getMaxDiscountValue().compareTo(BigDecimal.ZERO) > 0) {
+                discount = discount.min(coupon.getMaxDiscountValue());
+            }
+        } else if ("fixed".equals(type)) {
+            discount = coupon.getDiscountValue();
+        } else {
+            return BigDecimal.ZERO;
+        }
+
+        return discount.max(BigDecimal.ZERO).min(subTotal);
     }
 
     @Getter
