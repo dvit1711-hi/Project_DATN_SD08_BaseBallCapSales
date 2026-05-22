@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/product")
@@ -42,9 +43,15 @@ public class ProductController {
         return productColorService.getProductDetail(id);
     }
 
+    // SAU (trả về map đơn giản chỉ có id):
     @PostMapping
-    public ResponseEntity<Product> createProduct(@Valid @RequestBody PostProductDto dto) {
-        return ResponseEntity.ok(productService.createProduct(dto));
+    public ResponseEntity<?> createProduct(@RequestBody PostProductDto dto) {
+        Product product = productService.createProduct(dto);
+        return ResponseEntity.ok(Map.of(
+                "id",          product.getId(),
+                "productName", product.getProductName(),
+                "status",      product.getStatus()
+        ));
     }
 
     @PutMapping("/{id}")
