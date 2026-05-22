@@ -7,6 +7,7 @@ import com.example.project_datn_sd08_baseballcapsales.Model.entity.ProductColor;
 import com.example.project_datn_sd08_baseballcapsales.Service.ProductColorService;
 import com.example.project_datn_sd08_baseballcapsales.payload.reponse.ApiResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,6 +28,24 @@ public class ProductColorController {
     @GetMapping
     public List<GetProductColorDto> getAll() {
         return productColorService.getAllProductColors();
+    }
+
+    /**
+     * POST /api/product-color/{productId}/colors/batch
+     * Body: [ { colorID, sizeID, price, stockQuantity, status, isRepresentative }, ... ]
+     */
+    @PostMapping("/{productId}/colors/batch")
+    public ResponseEntity<?> createBatch(
+            @PathVariable Integer productId,
+            @RequestBody List<PostProductColorDto> dtos) {
+        try {
+            List<ProductColor> result = productColorService.createBatch(productId, dtos);
+            return ResponseEntity.ok(result);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
     }
 
     @PostMapping("/{productId}/color")

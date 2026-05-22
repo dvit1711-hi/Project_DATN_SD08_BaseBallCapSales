@@ -205,9 +205,6 @@ public class PaymentService {
                 throw new RuntimeException(productName + " không đủ tồn kho");
             }
 
-            productColor.setStockQuantity(currentStock - quantity);
-            productColorRepository.save(productColor);
-
             BigDecimal price = productDiscountService.getDiscountedPrice(productColor);
             subTotal = subTotal.add(
                     price.multiply(BigDecimal.valueOf(item.getQuantity()))
@@ -235,6 +232,8 @@ public class PaymentService {
         BigDecimal safeShippingFee = shippingFee == null ? BigDecimal.ZERO : shippingFee.max(BigDecimal.ZERO);
         BigDecimal total = subTotal.subtract(discountAmount).max(BigDecimal.ZERO).add(safeShippingFee);
         order.setTotalAmount(total);
+        // Mark that stock has not yet been deducted; deduction will happen when admin confirms payment
+        order.setStockDeducted(false);
         orderRepository.save(order);
 
         String normalizedMethod = normalizePaymentMethod(method);
@@ -476,6 +475,8 @@ public class PaymentService {
                 }
                 order.setStatus(OrderStatus.CONFIRMED);
                 // payment giữ nguyên UNPAID
+                // Deduct stock now that admin confirmed the COD order
+                deductStockForOrder(order);
                 return orderRepository.save(order);
 
             } else if (order.getStatus() == OrderStatus.SHIPPING) {
@@ -506,6 +507,9 @@ public class PaymentService {
         } else {
             order.setStatus(OrderStatus.CONFIRMED);
         }
+
+        // Deduct stock now that payment is confirmed
+        deductStockForOrder(order);
 
         return orderRepository.save(order);
     }
@@ -549,97 +553,72 @@ public class PaymentService {
                 ? payment.getStatus()
                 : PaymentStatus.UNKNOWN;
 
-        // Không cho revert trạng thái ban đầu
         if (orderStatus == OrderStatus.PENDING_PAYMENT &&
                 (paymentStatus == PaymentStatus.UNPAID || paymentStatus == PaymentStatus.UNKNOWN)) {
             throw new RuntimeException("Đơn đang ở trạng thái ban đầu");
         }
 
-        // =====================
-        // CASE: CONFIRMED (Chờ giao hàng) → quay về Chờ xác nhận
-        // =====================
+        // CASE 1: CONFIRMED → quay về PENDING_PAYMENT
         if (orderStatus == OrderStatus.CONFIRMED) {
             boolean isCod = payment != null &&
                     "COD".equals(normalizePaymentMethod(payment.getMethod()));
-
-            if (isCod) {
-                // COD: payment vẫn UNPAID, chỉ revert order status
-                order.setStatus(OrderStatus.PENDING_PAYMENT);
-            } else {
-                // BANK/EWALLET: đã set PAID khi confirm → revert về UNPAID
+            if (!isCod) {
                 if (payment != null) {
                     payment.setStatus(PaymentStatus.UNPAID);
                     paymentRepository.save(payment);
                 }
-                order.setStatus(OrderStatus.PENDING_PAYMENT);
-            }
-            return orderRepository.save(order);
-        }
-
-        // =====================
-        // CASE: ĐÃ THANH TOÁN
-        // =====================
-        if (orderStatus == OrderStatus.PAID || paymentStatus == PaymentStatus.PAID) {
-            String method = payment != null
-                    ? normalizePaymentMethod(payment.getMethod())
-                    : "";
-
-            if ("COD".equals(method) &&
-                    (orderStatus == OrderStatus.SHIPPING || orderStatus == OrderStatus.PAID)) {
-                if (payment != null) {
-                    payment.setStatus(PaymentStatus.UNPAID);
-                    paymentRepository.save(payment);
-                }
-                order.setStatus(OrderStatus.SHIPPING);
-                return orderRepository.save(order);
-            }
-
-            if (!"COD".equals(method)) {
-                if (payment != null && paymentStatus != PaymentStatus.PAID) {
-                    payment.setStatus(PaymentStatus.PAID);
-                    paymentRepository.save(payment);
-                }
-                order.setStatus(OrderStatus.SHIPPING);
-                return orderRepository.save(order);
-            }
-
-            if (payment != null) {
-                payment.setStatus(PaymentStatus.UNPAID);
-                paymentRepository.save(payment);
             }
             order.setStatus(OrderStatus.PENDING_PAYMENT);
             return orderRepository.save(order);
         }
 
-
-        // CASE: SHIPPING → quay về Chờ giao hàng (CONFIRMED)
+        // ✅ CASE 2: SHIPPING → quay về CONFIRMED (chờ giao hàng)
+        // Phải đặt TRƯỚC case PAID để BANK_TRANSFER (SHIPPING+PAID) không bị nhảy sai
         if (orderStatus == OrderStatus.SHIPPING) {
-            // Quay về CONFIRMED thay vì PENDING_PAYMENT
-            // COD: payment vẫn UNPAID, BANK: payment vẫn PAID
-            // Cả hai đều về CONFIRMED = Chờ giao hàng
+            // Giữ nguyên paymentStatus (COD vẫn UNPAID, BANK vẫn PAID)
             order.setStatus(OrderStatus.CONFIRMED);
             return orderRepository.save(order);
         }
 
+        // CASE 3: ĐÃ HOÀN THÀNH (PAID)
+        if (orderStatus == OrderStatus.PAID || paymentStatus == PaymentStatus.PAID) {
+            String method = payment != null
+                    ? normalizePaymentMethod(payment.getMethod())
+                    : "";
 
-        // =====================
-        // CASE: CANCELLED
-        // =====================
+            if ("COD".equals(method)) {
+                if (payment != null) {
+                    payment.setStatus(PaymentStatus.UNPAID);
+                    paymentRepository.save(payment);
+                }
+                order.setStatus(OrderStatus.SHIPPING);
+                return orderRepository.save(order);
+            }
+
+            // BANK/EWALLET: revert từ PAID → SHIPPING (giữ PAID, cho revert tiếp)
+            order.setStatus(OrderStatus.SHIPPING);
+            return orderRepository.save(order);
+        }
+
+        // CASE 4: CANCELLED
         if (orderStatus == OrderStatus.CANCELLED ||
                 paymentStatus == PaymentStatus.CANCELLED) {
 
-            List<OrderDetail> details =
-                    orderDetailRepository.findByOrderID_Id(order.getId());
+            // Only restore stock if it was previously deducted for this order
+            if (Boolean.TRUE.equals(order.getStockDeducted())) {
+                List<OrderDetail> details =
+                        orderDetailRepository.findByOrderID_Id(order.getId());
 
-            for (OrderDetail d : details) {
-                ProductColor pc = d.getProductColorID();
-                if (pc == null) continue;
+                for (OrderDetail d : details) {
+                    ProductColor pc = d.getProductColorID();
+                    if (pc == null) continue;
+                    int stock = pc.getStockQuantity() == null ? 0 : pc.getStockQuantity();
+                    int qty = d.getQuantity() == null ? 0 : d.getQuantity();
+                    pc.setStockQuantity(stock + qty);
+                    productColorRepository.save(pc);
+                }
 
-                int stock = pc.getStockQuantity() == null ? 0 : pc.getStockQuantity();
-                int qty = d.getQuantity() == null ? 0 : d.getQuantity();
-
-                pc.setStockQuantity(stock + qty); // ← cộng lại tồn kho
-                productColorRepository.save(pc);
+                order.setStockDeducted(false);
             }
 
             DiscountCoupon coupon = order.getCouponID();
@@ -819,22 +798,27 @@ public class PaymentService {
             throw new RuntimeException("Ở trạng thái CONFIRMED hoặc SHIPPING không hủy được đơn hàng");
         }
 
-        List<OrderDetail> details =
-                orderDetailRepository.findByOrderID_Id(order.getId());
+        // Only restore stock if it was previously deducted for this order
+        if (Boolean.TRUE.equals(order.getStockDeducted())) {
+            List<OrderDetail> details =
+                    orderDetailRepository.findByOrderID_Id(order.getId());
 
-        for (OrderDetail detail : details) {
-            ProductColor productColor = detail.getProductColorID();
-            if (productColor == null) continue;
+            for (OrderDetail detail : details) {
+                ProductColor productColor = detail.getProductColorID();
+                if (productColor == null) continue;
 
-            int stock = productColor.getStockQuantity() == null ? 0 : productColor.getStockQuantity();
-            int qty = detail.getQuantity() == null ? 0 : detail.getQuantity();
+                int stock = productColor.getStockQuantity() == null ? 0 : productColor.getStockQuantity();
+                int qty = detail.getQuantity() == null ? 0 : detail.getQuantity();
 
-            productColor.setStockQuantity(stock + Math.max(qty, 0));
-            productColorRepository.save(productColor);
+                productColor.setStockQuantity(stock + Math.max(qty, 0));
+                productColorRepository.save(productColor);
 
-            if (restoreToCart && qty > 0 && order.getAccountID() != null) {
-                restoreItemToCart(order.getAccountID(), productColor, qty);
+                if (restoreToCart && qty > 0 && order.getAccountID() != null) {
+                    restoreItemToCart(order.getAccountID(), productColor, qty);
+                }
             }
+
+            order.setStockDeducted(false);
         }
 
         DiscountCoupon coupon = order.getCouponID();
@@ -881,6 +865,29 @@ public class PaymentService {
         }
 
         cartItemRepository.save(cartItem);
+    }
+
+    private void deductStockForOrder(Order order) {
+        if (order == null) return;
+        if (Boolean.TRUE.equals(order.getStockDeducted())) return;
+
+        List<OrderDetail> details = orderDetailRepository.findByOrderID_Id(order.getId());
+        for (OrderDetail d : details) {
+            ProductColor pc = d.getProductColorID();
+            if (pc == null) continue;
+            int stock = pc.getStockQuantity() == null ? 0 : pc.getStockQuantity();
+            int qty = d.getQuantity() == null ? 0 : d.getQuantity();
+            if (qty <= 0) continue;
+            if (stock < qty) {
+                String productName = pc.getProductID() != null ? pc.getProductID().getProductName() : "Sản phẩm";
+                throw new RuntimeException(productName + " không đủ tồn kho khi xác nhận đơn");
+            }
+            pc.setStockQuantity(stock - qty);
+            productColorRepository.save(pc);
+        }
+
+        order.setStockDeducted(true);
+        orderRepository.save(order);
     }
 
     private DiscountCoupon validateCoupon(String couponCode, BigDecimal orderAmount) {

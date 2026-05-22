@@ -381,6 +381,8 @@ public class PosServiceImpl implements PosService {
             payment.setStatus(PaymentStatus.UNPAID);
         }
 
+        // Mark that stock was deducted for this POS order
+        order.setStockDeducted(true);
         orderRepository.save(order);
         paymentRepository.save(payment);
 
