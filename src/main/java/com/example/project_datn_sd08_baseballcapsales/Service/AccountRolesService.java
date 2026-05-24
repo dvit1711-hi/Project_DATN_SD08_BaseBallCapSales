@@ -1,10 +1,8 @@
 package com.example.project_datn_sd08_baseballcapsales.Service;
 
-import com.example.project_datn_sd08_baseballcapsales.Model.entity.AccountRoleId;
+import com.example.project_datn_sd08_baseballcapsales.Model.entity.*;
+import com.example.project_datn_sd08_baseballcapsales.Repository.StatusRepository;
 import com.example.project_datn_sd08_baseballcapsales.payload.request.RegisterRequest;
-import com.example.project_datn_sd08_baseballcapsales.Model.entity.Account;
-import com.example.project_datn_sd08_baseballcapsales.Model.entity.AccountRole;
-import com.example.project_datn_sd08_baseballcapsales.Model.entity.Role;
 import com.example.project_datn_sd08_baseballcapsales.Repository.AccountRepository;
 import com.example.project_datn_sd08_baseballcapsales.Repository.AccountRoleRepository;
 import com.example.project_datn_sd08_baseballcapsales.Repository.RoleRepository;
@@ -32,6 +30,9 @@ public class AccountRolesService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private StatusRepository statusRepository;
+
     public void registerUser(RegisterRequest request) {
 
         // tạo account
@@ -39,6 +40,10 @@ public class AccountRolesService {
         account.setUsername(request.getUsername());
         account.setPassword(passwordEncoder.encode(request.getPassword()));
         account.setEmail(request.getEmail());
+
+        Status activeStatus = statusRepository.findByStatusName("Active")
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy status Active"));
+        account.setStatus(activeStatus);
 
         account = accountRepository.save(account); // lấy lại account có ID
 
